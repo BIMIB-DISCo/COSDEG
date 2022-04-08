@@ -136,6 +136,8 @@ for (d in dataset_folders) {
   # remotes::install_github('chris-mcginnis-ucsf/DoubletFinder')
   suppressMessages(require(DoubletFinder))
   
+  data.filt[[d]] = NormalizeData(data.filt[[d]])
+  
   data.filt[[d]] = FindVariableFeatures(data.filt[[d]], verbose = F)
   print(d)
   data.filt[[d]] = ScaleData(data.filt[[d]], vars.to.regress = c("nFeature_RNA", "percent_mito"),verbose = F)
