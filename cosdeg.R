@@ -7,8 +7,7 @@ for (i in file_list) {
   download.file(url = paste0(webpath, i), destfile = paste0("./data/raw/", i))
 }
 
-install_github("https://github.com/chris-mcginnis-ucsf/DoubletFinder", upgrade = F)
-
+devtools::install_github("https://github.com/chris-mcginnis-ucsf/DoubletFinder", upgrade = F)
 
 
 
@@ -20,6 +19,8 @@ suppressMessages(require(DoubletFinder))
 dataset_folders <- list.dirs(path = "data/", full.names = F, recursive = F)
 dataset_folders <- dataset_folders[-5] # remove raw folder
 
+
+#load data
 s_data <- list()
 data.filt <- list()
 s_data_dim <- list()
@@ -31,10 +32,8 @@ for (d in dataset_folders) {
   s_data[[d]] <- CreateSeuratObject(counts = tmp_expression, project = d)
   s_data_dim[[d]] <- dim(s_data[[d]])
   
-  # Way1: Doing it using Seurat function
   s_data[[d]] <- PercentageFeatureSet(s_data[[d]], "^MT-", col.name = "percent_mito")
   s_data[[d]] <- PercentageFeatureSet(s_data[[d]], "^RP[SL]", col.name = "percent_ribo")
-  # Percentage hemoglobin genes - includes all genes starting with HB except HBP.
   s_data[[d]] <- PercentageFeatureSet(s_data[[d]], "^HB[^(P)]", col.name = "percent_hb")
   s_data[[d]] <- PercentageFeatureSet(s_data[[d]], "PECAM1|PF4", col.name = "percent_plat")
   
@@ -51,19 +50,16 @@ VlnPlot(alldata, group.by = "orig.ident", features = feats, pt.size = 0.1, ncol 
 
 
 
-for (d in dataset_folders) { 
-  s_data_dim[[d]] <- dim(s_data[[d]])
-}
 
 summary_qc <- data.frame(s_data_dim)
 summary_qc
 
-
-selected_f <- list()
+#selecting expressed genes
+selected_f0 <- list()
 for (d in dataset_folders) {
-  selected_f[[d]] <- rownames(s_data[[d]])[Matrix::rowSums(s_data[[d]]) > 0]
-  data.filt[[d]] <- subset(s_data[[d]], features = selected_f[[d]])
-  s_data_dim[[d]] <- length(selected_f[[d]])
+  selected_f0[[d]] <- rownames(s_data[[d]])[Matrix::rowSums(s_data[[d]]) > 0]
+  data.filt[[d]] <- subset(s_data[[d]], features = selected_f0[[d]])
+  s_data_dim[[d]] <- length(selected_f0[[d]])
   #s_data_dim[[d]] <- dim(data.filt[[d]])
   print(dim(data.filt[[d]]))
 }
@@ -78,9 +74,9 @@ summary_qc
 selected_c <- list()
 perc_zeros <- 0.90
 for (d in dataset_folders) {
-  selected_c[[d]] <- colnames(data.filt[[d]])[data.filt[[d]]$nFeature_RNA/dim(data.filt[[d]])[1]>=1-perc_zeros]
-  data.filt[[d]] <- subset(data.filt[[d]], cells = selected_c[[d]])
-  s_data_dim[[d]] <- length(selected_c[[d]])
+  selected_c90[[d]] <- colnames(data.filt[[d]])[data.filt[[d]]$nFeature_RNA/dim(data.filt[[d]])[1]>=1-perc_zeros]
+  data.filt[[d]] <- subset(data.filt[[d]], cells = selected_c90[[d]])
+  s_data_dim[[d]] <- length(selected_c90[[d]])
   #s_data_dim[[d]] <- dim(data.filt[[d]])
   print(dim(data.filt[[d]]))
 }
@@ -88,21 +84,20 @@ for (d in dataset_folders) {
 summary_qc[4,]=s_data_dim
 summary_qc
 
+#selecting cells with less than 1 std from the mean of mitochondrial content  
 perc_mitoc <- list()
 for (d in dataset_folders) {
-  # Way1: Doing it using Seurat function
   data.filt[[d]] <- PercentageFeatureSet(data.filt[[d]], "^MT-", col.name = "percent_mito")
   data.filt[[d]] <- PercentageFeatureSet(data.filt[[d]], "^RP[SL]", col.name = "percent_ribo")
-  # Percentage hemoglobin genes - includes all genes starting with HB except HBP.
   data.filt[[d]] <- PercentageFeatureSet(data.filt[[d]], "^HB[^(P)]", col.name = "percent_hb")
   data.filt[[d]] <- PercentageFeatureSet(data.filt[[d]], "PECAM1|PF4", col.name = "percent_plat")
   
   perc_mitoc[[d]] <- mean(data.filt[[d]]$percent_mito/100.) + sd(data.filt[[d]]$percent_mito/100.)
   
-  selected_c[[d]] <- colnames(data.filt[[d]])[data.filt[[d]]$percent_mito/100 <= perc_mitoc[[d]]]
+  selected_cMT[[d]] <- colnames(data.filt[[d]])[data.filt[[d]]$percent_mito/100 <= perc_mitoc[[d]]]
   
-  data.filt[[d]] <- subset(data.filt[[d]], cells = selected_c[[d]])
-  s_data_dim[[d]] <- length(selected_c[[d]])
+  data.filt[[d]] <- subset(data.filt[[d]], cells = selected_cMT[[d]])
+  s_data_dim[[d]] <- length(selected_cMT[[d]])
   #s_data_dim[[d]] <- dim(data.filt[[d]])
   print(dim(data.filt[[d]]))
 }
@@ -122,7 +117,7 @@ for (d in dataset_folders) {
           col = (scales::hue_pal())(20)[20:1], horizontal = TRUE)
 }
 
-# Merge datasets into one single seurat object
+# Merge filtered datasets into one single seurat object
 alldata <- merge(data.filt[[1]], data.filt[-1], add.cell.ids = names(data.filt))
 
 feats <- c("nFeature_RNA", "nCount_RNA", "percent_mito", "percent_ribo", "percent_hb")
