@@ -194,7 +194,7 @@ multiplet_rate <- 0.04
 
 
 qc_results <- quality_check(s_data, perc_zeros, sigma_mito, multiplet_rate)
-
+ 
 
 ####################
 
