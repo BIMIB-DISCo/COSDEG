@@ -52,13 +52,15 @@ body <- dashboardBody(
            )
     ),
     column(width = 9,
-           box(width = NULL, solidHeader = TRUE, title = "Select datasets",
+           box(width = NULL, solidHeader = FALSE, title = "Select datasets",
+               status = "success",
              uiOutput("mydatasets_out")  
            ),
            box(width = NULL, collapsible = TRUE, collapsed = TRUE,
                verbatimTextOutput("selection")
            ),
-           box(width = NULL, solidHeader = TRUE, title = "Project",
+           box(width = NULL, solidHeader = FALSE, title = "Project",
+               status = "info",
                textInput("project_name", "Project name", placeholder = "Choose a name"),
                actionButton("create_project", "Create project")
            ),
@@ -83,7 +85,7 @@ ui <- fluidPage(
 
 # Define server logic to read selected file ----
 server <- function(input, output) {
-  roots=c(wd='.')
+  roots=c(wd='.', root=.Platform$OS.type)
   dataset_names <- reactiveVal(value = list())
   dataset_names_right <- reactiveVal(value = list())  
   
