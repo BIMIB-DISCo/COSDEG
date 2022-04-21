@@ -26,14 +26,14 @@ body <- dashboardBody(
                
                
                # Input: Select separator ----
-               radioButtons("dataset_type", "type",
-                            choices = c("10x genomics" = "10x",
-                                        "starSolo" = "solo",
-                                        "10x genomics hdf5" = "10x_hdf5",
-                                        "mtx" = "mtx"),
-                            selected = "10x"),
-               
-               
+               radioButtons("dataset_type", "Dataset type:",
+                            choices = c("10X genomics mtx(.gz) matrix, barcodes and features" = "10X_mtx",
+                              "10X hdf5" = "10X_h5",
+                              "STARsolo" = "star",
+                              "mtx file, barcodes file and features file " = "mtx"),
+                            selected = "10X_mtx"
+               ),
+
                # Horizontal line ----
                tags$hr(),
                
@@ -73,6 +73,38 @@ body <- dashboardBody(
     )
   )
 )
+
+
+# check is a dataset folder
+check_dataset_dir <- function(folder) {
+  if(dir.exists(folder)) {
+    mtx <- list.files(path = folder, 
+               pattern = ".*\\.mtx|.*\\.mtx\\.gz|.*\\.h5", 
+               full.names = TRUE, include.dirs = FALSE, 
+               no.. = TRUE, recursive = TRUE
+              )
+    if(length(mtx)>1) {
+      return(check_multidatasets_dir(folder))
+    }
+    else if (length(mtx) == 0) {
+      return(NULL)
+    }
+    else {
+      mtx_dir <- dirname(mtx[[1]])
+      mtx_files <- list.files(path = folder, 
+                        pattern = ".*\\.mtx|.*\\.mtx\\.gz|.*\\.h5|.*\\.tsv|.*\\.tsv\\.gz", 
+                        full.names = TRUE, include.dirs = FALSE, 
+                        no.. = TRUE, recursive = TRUE
+      )
+      mtx_files <- lapply(mtx_files, basename)
+      
+    }
+      
+    
+  }
+}
+
+# check is multi-datasets folder
 
 # Define UI for data upload app ----
 ui <- fluidPage(
