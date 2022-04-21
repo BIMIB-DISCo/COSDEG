@@ -175,8 +175,8 @@ meaningful_name_path <- function(dataset_dir_list) {
   unique(unlist(stringr::str_split(unlist(dataset_dir_list),pattern = "/")))
   known <- "data|dataset|raw|filtered|barcode|feature|matrix|cazzo"
   pat <- stringi::stri_replace_all_fixed(paste0(c(dup_names_,known),collapse = "|"), ".", "\\.")  
-  probable_name <- lapply(names_,function(x){x[!stringi::stri_detect_regex(x, pattern = pat)]})
-  return(probable_name)
+  probable_names <- lapply(names_,function(x){x[!stringi::stri_detect_regex(x, pattern = pat)]})
+  return(probable_names)
 }
  
 # Define UI for data upload app ----
@@ -228,22 +228,65 @@ server <- function(input, output) {
           c(roots[input$dataset_dir[[2]]],input$dataset_dir[[1]][-1]), 
           collapse = .Platform$file.sep
         )
-        print("reading...")
-        expression_matrix <- Read10X(data.dir = dir_name)
-        seurat_object <- CreateSeuratObject(counts = expression_matrix)
         
-        dataset_name <- input$dataset_name
-        if(stringr::str_length(dataset_name) == 0)
-          dataset_name <- "NoName"
-        
-        Misc(object = seurat_object, slot = "name") <- dataset_name
-        seurat_objects( c(seurat_objects(), seurat_object) )
-        tmp_list <- seurat_objects()
-        names(tmp_list)[[length(tmp_list)]] <- dataset_name
-        seurat_objects(tmp_list)
-        print(seurat_object)
+        multidataset_dirs <- check_multidatasets_dir(dir_name)
+        multidataset_names <- meaningful_name_path(multidataset_dirs)
+        for (i in 1:length(multidataset_dirs)) {
+          print("reading...")
+          #browser()
+          if (dir.exists(multidataset_dirs[[i]])) {
+            expression_matrix <- Read10X(data.dir = multidataset_dirs[[i]])
+          }
+          else {
+            expression_matrix <- Read10X_h5(filename = multidataset_dirs[[i]])
+          }
+          seurat_object <- CreateSeuratObject(counts = expression_matrix)
+          if (length(multidataset_dirs) == 1) {
+            dataset_name <- input$dataset_name
+            if(stringr::str_length(dataset_name) == 0)
+              dataset_name <- "NoName"
+          }
+          else
+            dataset_name <- multidataset_names[[i]][1]
+          
+          Misc(object = seurat_object, slot = "name") <- dataset_name
+          seurat_objects( c(seurat_objects(), seurat_object) )
+          tmp_list <- seurat_objects()
+          names(tmp_list)[[length(tmp_list)]] <- dataset_name
+          seurat_objects(tmp_list)
+          print(seurat_object)
+          #print(seurat_objects())
+          print("reading complete")
+          
+          ####
+          
+          
+        }
+        print("seurat_objects")
         print(seurat_objects())
-        print("reading complete")
+        
+        tmp_list <- c(input$mydatasets$left, list(names(seurat_objects())))
+        tmp_list <- as.list(make.unique( unlist( c(tmp_list, input$mydatasets$right) ) ))[1:length(tmp_list)]
+        
+        dataset_names_right(input$mydatasets$right)
+        dataset_names(tmp_list)
+        
+        # print("reading...")
+        # expression_matrix <- Read10X(data.dir = dir_name)
+        # seurat_object <- CreateSeuratObject(counts = expression_matrix)
+        # 
+        # dataset_name <- input$dataset_name
+        # if(stringr::str_length(dataset_name) == 0)
+        #   dataset_name <- "NoName"
+        # 
+        # Misc(object = seurat_object, slot = "name") <- dataset_name
+        # seurat_objects( c(seurat_objects(), seurat_object) )
+        # tmp_list <- seurat_objects()
+        # names(tmp_list)[[length(tmp_list)]] <- dataset_name
+        # seurat_objects(tmp_list)
+        # print(seurat_object)
+        # print(seurat_objects())
+        # print("reading complete")
         
       },
       error = function(e) {
@@ -255,11 +298,11 @@ server <- function(input, output) {
     )
     
     
-    tmp_list <- c(input$mydatasets$left, list(dataset_name))
-    tmp_list <- as.list(make.unique( unlist( c(tmp_list, input$mydatasets$right) ) ))[1:length(tmp_list)]
+    #tmp_list <- c(input$mydatasets$left, list(dataset_name))
+    #tmp_list <- as.list(make.unique( unlist( c(tmp_list, input$mydatasets$right) ) ))[1:length(tmp_list)]
 
-    dataset_names_right(input$mydatasets$right)
-    dataset_names(tmp_list)
+    #dataset_names_right(input$mydatasets$right)
+    #dataset_names(tmp_list)
   })
   
   output$mydatasets_out <- renderUI({
