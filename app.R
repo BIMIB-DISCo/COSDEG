@@ -137,7 +137,7 @@ check_multidatasets_dir <- function(folder) {
   
   if(length(folder)>1)
     return(lapply(folder, check_multidatasets_dir))
-  #print("FFF")
+  
   #print(folder)
   if(dir.exists(folder)) {
     mtx <- list.files(path = folder, 
@@ -149,13 +149,11 @@ check_multidatasets_dir <- function(folder) {
     if(length(mtx)==0)
       return(NULL)
     
-    #print("AAA")
     #print(mtx)
     dirs <- list()
     file_dirs <- dirname(mtx)
     file_dirs <- unique(file_dirs)
     for (d in file_dirs) {
-      #print("DDD")
       #print(d)
       dirs <- c(dirs, check_dataset_dir(d))
     }
@@ -222,10 +220,9 @@ server <- function(input, output) {
   observeEvent(input$load_dataset, {
     req(input$dataset_dir)
     
-    read_method <- input$dataset_type
     seurat_objects_ <- list()
     
-    switch (read_method,
+    switch (input$dataset_type,
             "10X_mtx" = read_func <- function(x) {Read10X(data.dir = x)},
             "10X_h5" = read_func <- function(x) {Read10X_h5(filename = x)},
             "star" = read_func <- function(x) {ReadSTARsolo(data.dir = x)},
@@ -247,7 +244,7 @@ server <- function(input, output) {
         for (i in 1:length(multidataset_dirs)) {
           skip <- stringi::stri_detect_regex(already_read, pattern=multidataset_dirs[[i]])
           if( length(skip)>0)
-            if (stringi::stri_detect_regex(already_read, pattern=multidataset_dirs[[i]])) {
+            if (any(skip)) {
               print("dataset already loaded ... continue")
               next
             }
@@ -271,21 +268,30 @@ server <- function(input, output) {
           )
           
           seurat_object <- CreateSeuratObject(counts = expression_matrix)
-          if (length(multidataset_dirs) == 1) {
-            dataset_name <- input$dataset_name
-            if(stringr::str_length(dataset_name) == 0)
-              dataset_name <- "NoName"
-          }
-          else
-            dataset_name <- multidataset_names[[i]][1]
+          
+          dataset_name <- input$dataset_name
+          if(stringr::str_length(dataset_name) == 0)
+            dataset_name <- "NoName"
+          if (length(multidataset_dirs) > 1) {
+            if(length(multidataset_names[[i]]) > 0)
+              dataset_name <- multidataset_names[[i]][1]
+          }   
+          #set unique name to dataset
+          unique_names <- 
+            make.unique( 
+              unlist( 
+                c(names(seurat_objects()), names(seurat_objects_), dataset_name) 
+              ) 
+            )
+        
+          dataset_name <- unique_names[length(unique_names)]
           
           Misc(object = seurat_object, slot = "name") <- dataset_name
           Misc(object = seurat_object, slot = "dir_name") <- multidataset_dirs[[i]]
-          seurat_objects_ <- c(seurat_objects_, seurat_object)
-          #seurat_objects( c(seurat_objects(), seurat_object) )
-          #tmp_list <- seurat_objects()
           
+          seurat_objects_ <- c(seurat_objects_, seurat_object)
           names(seurat_objects_)[[length(seurat_objects_)]] <- dataset_name
+          
           #browser()
           print(seurat_object@misc$name)
           print(seurat_object)
@@ -296,47 +302,29 @@ server <- function(input, output) {
           
         }
         
-        #browser()
-        
-        unique_names <- as.list(
-          make.unique( 
-            unlist( 
-              c(names(seurat_objects()), names(seurat_objects_)) 
-              ) 
-            )
-          )
-        
-        if (length(seurat_objects()) > 0)
-          unique_names <-unique_names[-seq_len(length(seurat_objects()))] #R merda
-        
-        names(seurat_objects_) <- unique_names
+        #set unique names to datasets
+        #unique_names <- as.list(
+        #  make.unique( 
+        #    unlist( 
+        #      c(names(seurat_objects()), names(seurat_objects_)) 
+        #      ) 
+        #    )
+        #  )
+        #if (length(seurat_objects()) > 0)
+        #  unique_names <-unique_names[-seq_len(length(seurat_objects()))] #R merda
+        #names(seurat_objects_) <- unique_names
         
         seurat_objects(c(seurat_objects(), seurat_objects_))
+        
         print("seurat_objects")
         print(seurat_objects())
         
-        browser()
+        #update mydatasets widget
         tmp_list <- c(input$mydatasets$left, as.list(names(seurat_objects_)))
-        
         dataset_names_right(input$mydatasets$right)
         dataset_names(tmp_list)
         
-        # print("reading...")
-        # expression_matrix <- Read10X(data.dir = dir_name)
-        # seurat_object <- CreateSeuratObject(counts = expression_matrix)
-        # 
-        # dataset_name <- input$dataset_name
-        # if(stringr::str_length(dataset_name) == 0)
-        #   dataset_name <- "NoName"
-        # 
-        # Misc(object = seurat_object, slot = "name") <- dataset_name
-        # seurat_objects( c(seurat_objects(), seurat_object) )
-        # tmp_list <- seurat_objects()
-        # names(tmp_list)[[length(tmp_list)]] <- dataset_name
-        # seurat_objects(tmp_list)
-        # print(seurat_object)
-        # print(seurat_objects())
-        # print("reading complete")
+        
         
       },
       error = function(e) {
