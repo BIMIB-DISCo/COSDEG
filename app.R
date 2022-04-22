@@ -28,12 +28,12 @@ body <- dashboardBody(
                # Input: Select separator ----
                radioButtons("dataset_type", "Dataset type:",
                             choices = c("10X genomics mtx(.gz) matrix, barcodes and features" = "10X_mtx",
-                              "10X hdf5" = "10X_h5",
-                              "STARsolo" = "star",
-                              "mtx file, barcodes file and features file " = "mtx"),
+                                        "10X hdf5" = "10X_h5",
+                                        "STARsolo" = "star",
+                                        "mtx file, barcodes file and features file " = "mtx"),
                             selected = "10X_mtx"
                ),
-
+               
                # Horizontal line ----
                tags$hr(),
                
@@ -43,10 +43,10 @@ body <- dashboardBody(
                #radioButtons("disp", "Display", choices = c(Head = "head", All = "all"), selected = "head"),
                #p(
                # class = "text-muted",
-                # paste("Note: a route number can have several different trips, each",
-                 #      "with a different path. Only the most commonly-used path will",
-                #       "be displayed on the map."
-                # )
+               # paste("Note: a route number can have several different trips, each",
+               #      "with a different path. Only the most commonly-used path will",
+               #       "be displayed on the map."
+               # )
                #),
                actionButton("load_dataset", "Load dataset")
            )
@@ -54,7 +54,7 @@ body <- dashboardBody(
     column(width = 9,
            box(width = NULL, solidHeader = FALSE, title = "Select datasets",
                status = "success",
-             uiOutput("mydatasets_out")  
+               uiOutput("mydatasets_out")  
            ),
            box(width = NULL, collapsible = TRUE, collapsed = TRUE,
                verbatimTextOutput("selection")
@@ -81,10 +81,10 @@ check_dataset_dir <- function(folder) {
     return(NULL)
   if(dir.exists(folder)) {
     mtx <- list.files(path = folder, 
-               pattern = ".*\\.mtx|.*\\.mtx\\.gz|.*\\.h5", 
-               full.names = TRUE, include.dirs = FALSE, 
-               no.. = TRUE, recursive = TRUE
-              )
+                      pattern = ".*\\.mtx|.*\\.mtx\\.gz|.*\\.h5", 
+                      full.names = TRUE, include.dirs = FALSE, 
+                      no.. = TRUE, recursive = TRUE
+    )
     if(length(mtx)>1) {
       print("Found multiple datasets")
       mtx_files <- lapply(mtx, basename)
@@ -109,9 +109,9 @@ check_dataset_dir <- function(folder) {
       print("Found 1 dataset")
       mtx_dir <- dirname(mtx[[1]])
       mtx_files <- list.files(path = mtx_dir, 
-                        pattern = ".*\\.mtx|.*\\.mtx\\.gz|.*\\.h5|.*\\.tsv|.*\\.tsv\\.gz", 
-                        full.names = TRUE, include.dirs = FALSE, 
-                        no.. = TRUE, recursive = TRUE
+                              pattern = ".*\\.mtx|.*\\.mtx\\.gz|.*\\.h5|.*\\.tsv|.*\\.tsv\\.gz", 
+                              full.names = TRUE, include.dirs = FALSE, 
+                              no.. = TRUE, recursive = TRUE
       )
       mtx_basefiles <- lapply(mtx_files, basename)
       test_fun <- function(x){any(stringi::stri_detect_regex(mtx_basefiles, pattern=x))}
@@ -166,7 +166,7 @@ check_multidatasets_dir <- function(folder) {
     return(NULL)
   }
 }
- 
+
 meaningful_name_path <- function(dataset_dir_list) {
   names_ <- xfun::sans_ext(dataset_dir_list)
   
@@ -178,7 +178,7 @@ meaningful_name_path <- function(dataset_dir_list) {
   probable_names <- lapply(names_,function(x){x[!stringi::stri_detect_regex(x, pattern = pat)]})
   return(probable_names)
 }
- 
+
 # Define UI for data upload app ----
 ui <- fluidPage(
   dashboardPage(
@@ -222,6 +222,16 @@ server <- function(input, output) {
   observeEvent(input$load_dataset, {
     req(input$dataset_dir)
     
+    read_method <- input$dataset_type
+    seurat_objects_ <- list()
+    
+    switch (read_method,
+            "10X_mtx" = read_func <- function(x) {Read10X(data.dir = x)},
+            "10X_h5" = read_func <- function(x) {Read10X_h5(filename = x)},
+            "star" = read_func <- function(x) {ReadSTARsolo(data.dir = x)},
+            read_func <- function(x) {ReadMtx(x)}
+    )
+    
     tryCatch(
       {
         dir_name <- paste0(
@@ -231,15 +241,35 @@ server <- function(input, output) {
         
         multidataset_dirs <- check_multidatasets_dir(dir_name)
         multidataset_names <- meaningful_name_path(multidataset_dirs)
+        browser()
+        already_read <- unlist(lapply(seurat_objects(), function(x) x@misc$dir_name))
+        
         for (i in 1:length(multidataset_dirs)) {
+          skip <- stringi::stri_detect_regex(already_read, pattern=multidataset_dirs[[i]])
+          if( length(skip)>0)
+            if (stringi::stri_detect_regex(already_read, pattern=multidataset_dirs[[i]])) {
+              print("dataset already loaded ... continue")
+              next
+            }
+          
           print("reading...")
-          #browser()
-          if (dir.exists(multidataset_dirs[[i]])) {
-            expression_matrix <- Read10X(data.dir = multidataset_dirs[[i]])
-          }
-          else {
-            expression_matrix <- Read10X_h5(filename = multidataset_dirs[[i]])
-          }
+          
+          expression_matrix <- tryCatch(
+            expression_matrix_ <- read_func(multidataset_dirs[[i]]),
+            error = function(e) {
+              print(paste("error using:", deparse1(read_func)))
+              print("trying different read method...")
+              
+              if (dir.exists(multidataset_dirs[[i]])) {
+                expression_matrix_ <- Read10X(data.dir = multidataset_dirs[[i]])
+              }
+              else {
+                expression_matrix_ <- Read10X_h5(filename = multidataset_dirs[[i]])
+              }
+              expression_matrix_
+            }
+          )
+          
           seurat_object <- CreateSeuratObject(counts = expression_matrix)
           if (length(multidataset_dirs) == 1) {
             dataset_name <- input$dataset_name
@@ -250,23 +280,43 @@ server <- function(input, output) {
             dataset_name <- multidataset_names[[i]][1]
           
           Misc(object = seurat_object, slot = "name") <- dataset_name
-          seurat_objects( c(seurat_objects(), seurat_object) )
-          tmp_list <- seurat_objects()
-          names(tmp_list)[[length(tmp_list)]] <- dataset_name
-          seurat_objects(tmp_list)
+          Misc(object = seurat_object, slot = "dir_name") <- multidataset_dirs[[i]]
+          seurat_objects_ <- c(seurat_objects_, seurat_object)
+          #seurat_objects( c(seurat_objects(), seurat_object) )
+          #tmp_list <- seurat_objects()
+          
+          names(seurat_objects_)[[length(seurat_objects_)]] <- dataset_name
+          #browser()
+          print(seurat_object@misc$name)
           print(seurat_object)
           #print(seurat_objects())
-          print("reading complete")
+          print("reading completed")
           
           ####
           
-          
         }
+        
+        #browser()
+        
+        unique_names <- as.list(
+          make.unique( 
+            unlist( 
+              c(names(seurat_objects()), names(seurat_objects_)) 
+              ) 
+            )
+          )
+        
+        if (length(seurat_objects()) > 0)
+          unique_names <-unique_names[-seq_len(length(seurat_objects()))] #R merda
+        
+        names(seurat_objects_) <- unique_names
+        
+        seurat_objects(c(seurat_objects(), seurat_objects_))
         print("seurat_objects")
         print(seurat_objects())
         
-        tmp_list <- c(input$mydatasets$left, list(names(seurat_objects())))
-        tmp_list <- as.list(make.unique( unlist( c(tmp_list, input$mydatasets$right) ) ))[1:length(tmp_list)]
+        browser()
+        tmp_list <- c(input$mydatasets$left, as.list(names(seurat_objects_)))
         
         dataset_names_right(input$mydatasets$right)
         dataset_names(tmp_list)
@@ -300,7 +350,7 @@ server <- function(input, output) {
     
     #tmp_list <- c(input$mydatasets$left, list(dataset_name))
     #tmp_list <- as.list(make.unique( unlist( c(tmp_list, input$mydatasets$right) ) ))[1:length(tmp_list)]
-
+    
     #dataset_names_right(input$mydatasets$right)
     #dataset_names(tmp_list)
   })
