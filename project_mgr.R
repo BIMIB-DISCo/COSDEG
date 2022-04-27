@@ -22,13 +22,9 @@ normalize_proj_name <- function(project_name) {
 
 
 normalize_tab_name <- function(project_name) {
-  #proj_names <- c()
   tab_names <- c()
-  #tab_ids <- c()
   for (proj in projects) {
-    #proj_names <- c(proj_names, proj[["project_name"]])
     tab_names <- c(tab_names, proj[["tab_name"]])
-    #tab_ids <- c(tab_ids, proj[["tab_id"]])
   }
   
   tmp_project_name_ <- project_name
@@ -104,12 +100,14 @@ create_proj <- function(project_name, selected_seurat_objs = NULL ) {
   project[["seurat_objs"]] <- selected_seurat_objs  #copy
   
   projects[[project_id]] <<- project
+  
+  return(project_id)
 }
 
 
 
 save_project <- function(project_id, file_name) {
-  browser()
+  #browser()
   project <- projects[[project_id]]
   COSDEG <- project[["COSDEG"]]
   save(project, COSDEG , precheck = TRUE, file = file_name)
@@ -125,8 +123,9 @@ loadRData <- function(filename, varname=NULL){
     return(get(ls()[ls() == varname]))
 }
 
+
 load_project <- function(file_name, projects) {
-  browser()
+  #browser()
   load(file_name)
   if (!any(ls() == "COSDEG"))
     return(FALSE)
@@ -165,14 +164,14 @@ load_project <- function(file_name, projects) {
   #project[["seurat_objs"]] <- seurat_objs  #copy
   
   projects[[project_id]] <<- project
-  
 }
 
 
+######
+
 create_proj_gui <- function (project_name, selected_seurat_objs = NULL) {
-  create_proj(project_name, selected_seurat_objs)
-  #create_tab
-  #activate_tab
+  project_id <- create_proj(project_name, selected_seurat_objs)
+  appendTab("tabs", tabPanel(title = projects[[project_id]][["tab_id"]]), select = TRUE)
 }
 
 

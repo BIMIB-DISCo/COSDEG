@@ -5,13 +5,23 @@ library(shinyFiles)
 
 source("chooser.R")
 
-
+source("project_mgr.R")
 
 header <- dashboardHeader(
   title = "COSDEG"
 )
 
+
+sidebar <- dashboardSidebar(
+  sidebarMenu(
+    menuItem("Create Project", tabName = "Load Dataset")#,
+    #menuItem("Load Project", tabName = "load_project"),
+    #menuItem("Save Project", tabName = "Save_projects")
+  )
+)
+
 body <- dashboardBody(
+  tags$script(HTML("$('body').addClass('fixed');")),
   fluidRow(
     column(width = 3,
            box(width = NULL, status = "warning",
@@ -177,14 +187,25 @@ meaningful_name_path <- function(dataset_dir_list) {
   return(probable_names)
 }
 
-# Define UI for data upload app ----
+
+
+
+
 ui <- fluidPage(
   dashboardPage(
     header,
-    dashboardSidebar(disable = TRUE),
-    body
+    dashboardSidebar(disable = FALSE, collapsed = TRUE),
+    dashboardBody(
+      navbarPage(id = "tabs", position = "static-top", #, "fixed-top"
+        "",
+        tabPanel("Load Data",
+          body
+        )         
+      )
+    )
   )
 )
+
 
 # Define server logic to read selected file ----
 server <- function(input, output) {
@@ -341,6 +362,14 @@ server <- function(input, output) {
     
     #dataset_names_right(input$mydatasets$right)
     #dataset_names(tmp_list)
+  })
+  
+  observeEvent(input$create_project, {
+    browser()
+    req(input$mydatasets)
+    req(input$project_name)
+    s_obj <- seurat_objects()[input$mydatasets$right]
+    create_proj_gui(input$project_name, selected_seurat_objs = s_obj)
   })
   
   output$mydatasets_out <- renderUI({
