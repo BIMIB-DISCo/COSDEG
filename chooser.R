@@ -1,3 +1,5 @@
+### chooser.R
+
 chooserInput <- function(inputId, leftLabel, rightLabel, leftChoices, rightChoices,
   size = 5, multiple = FALSE) {
   
@@ -40,3 +42,6 @@ registerInputHandler("shinyjsexamples.chooser", function(data, ...) {
   else
     list(left=as.character(data$left), right=as.character(data$right))
 }, force = TRUE)
+
+
+### end of file -- chooser.R

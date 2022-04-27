@@ -1,3 +1,5 @@
+### project_mgr.R
+
 cosdeg_version <- "v0.8.0"
 
 projects <- list()
@@ -182,3 +184,6 @@ create_proj(project_name = project_name)
 project_id <- names(projects)[[2]]
 save_project(project_id = project_id, file_name = "./test.Rdata")
 load_project(file_name = "./test.Rdata", projects = projects)
+
+
+### end of file -- project_mgr.R

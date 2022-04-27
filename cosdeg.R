@@ -1,3 +1,5 @@
+### cosdeg.R
+
 #webpath <- "https://raw.githubusercontent.com/NBISweden/workshop-scRNAseq/new_dataset/labs/data/covid_data_GSE149689/sub/"
 #dir.create("./data/raw", recursive = T)
 
@@ -240,4 +242,4 @@ rm(s_data,tmp_expression)
 gc()
 
 
-
+### end of file -- cosdeg.R

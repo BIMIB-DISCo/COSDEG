@@ -1,3 +1,5 @@
+### app.R
+
 library(shiny)
 library(shinydashboard)
 library(Seurat)
@@ -389,4 +391,5 @@ server <- function(input, output) {
 
 shinyApp(ui, server)
 
+### end of file -- app.R
 
