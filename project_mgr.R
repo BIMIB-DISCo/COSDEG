@@ -109,10 +109,11 @@ create_proj <- function(project_name, selected_seurat_objs = NULL ) {
 
 
 save_project <- function(project_id, file_name) {
-  #browser()
+  browser()
   project <- projects[[project_id]]
   COSDEG <- project[["COSDEG"]]
-  save(project, COSDEG , precheck = TRUE, file = file_name)
+  file_name_path <- file_name$datapath
+  save(project, COSDEG , precheck = TRUE, file = file_name_path)
 }
 
 
@@ -128,8 +129,12 @@ loadRData <- function(filename, varname=NULL){
 
 load_project <- function(file_name, projects) {
   #browser()
+  file_name <- file_name$datapath
   load(file_name)
   if (!any(ls() == "COSDEG"))
+    return(FALSE)
+  
+  if (!any(ls() == "project"))
     return(FALSE)
   
   tmp_ <- normalize_proj_name(project_name)
@@ -139,7 +144,7 @@ load_project <- function(file_name, projects) {
     # rise warning
   }
   
-  #project <- list()
+  #project_ <- list()
   
   #project[["COSDEG"]] <- COSDEG
   #project[["project_name"]] <- project_name
@@ -163,27 +168,27 @@ load_project <- function(file_name, projects) {
   
   project[["modified"]] <- FALSE
   
-  #project[["seurat_objs"]] <- seurat_objs  #copy
+  #project_[["seurat_objs"]] <- seurat_objs  #copy
   
   projects[[project_id]] <<- project
+  
+  return(project_id)
 }
 
 
 ######
 
-create_proj_gui <- function (project_name, selected_seurat_objs = NULL) {
-  project_id <- create_proj(project_name, selected_seurat_objs)
-  appendTab("tabs", tabPanel(title = projects[[project_id]][["tab_id"]]), select = TRUE)
-}
 
 
-project_name <- "dati 1"
-create_proj(project_name = project_name)
-create_proj(project_name = project_name)
 
-project_id <- names(projects)[[2]]
-save_project(project_id = project_id, file_name = "./test.Rdata")
-load_project(file_name = "./test.Rdata", projects = projects)
+
+#project_name <- "dati 1"
+#create_proj(project_name = project_name)
+#create_proj(project_name = project_name)
+
+#project_id <- names(projects)[[2]]
+#save_project(project_id = project_id, file_name = list(datapath="./test.Rdata"))
+#load_project(file_name = list(datapath="./test.Rdata"), projects = projects)
 
 
 ### end of file -- project_mgr.R

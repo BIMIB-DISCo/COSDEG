@@ -1,9 +1,13 @@
 ### app.R
 
 library(shiny)
+library(shinyjs)
 library(shinydashboard)
 library(Seurat)
 library(shinyFiles)
+
+
+source("cosdeg.R")
 
 source("chooser.R")
 
@@ -16,10 +20,10 @@ header <- dashboardHeader(
 
 sidebar <- dashboardSidebar(
   sidebarMenu(
-    menuItem("Create Project", tabName = "Load Dataset")#,
-    #menuItem("Load Project", tabName = "load_project"),
-    #menuItem("Save Project", tabName = "Save_projects")
-  )
+    menuItem("Create Project", tabName = "Load Dataset"),
+    shinySaveButton("save_project", label = "Save", title = "Save project", multiple = FALSE),
+    shinyFilesButton("load_project", label = "Load", title = "Load project", multiple = FALSE)
+  ), disable = FALSE, collapsed = TRUE
 )
 
 body <- dashboardBody(
@@ -177,6 +181,37 @@ check_multidatasets_dir <- function(folder) {
   }
 }
 
+
+
+project_tab <- function(project_id) {
+  tab <- tabPanel(title = projects[[project_id]][["tab_id"]],
+    fluidRow(
+      column(width = 3,
+        box(width = NULL, status = "warning",
+          title = "Quality Check",
+          sliderInput("perc_zeros", label = "Zero genes per cell cutoff", 0.80, 1, value=0.95, step = 0.01),
+          sliderInput("sigma_mito", label = "Std mitochondrial content cutoff", 0.50, 2, value=1.0, step = 0.5),
+          sliderInput("multiplet_rate", label = "Doublets rate formation", 0.02, 0.2, value=0.04, step = 0.01),
+          actionButton("do_qc", "Quality check")
+        )
+      )
+    )
+  )
+  return(tab)
+}
+  
+
+create_proj_gui <- function (project_name, selected_seurat_objs = NULL) {
+  project_id <- create_proj(project_name, selected_seurat_objs)
+  appendTab("tabs", project_tab(project_id), select = TRUE)
+}
+
+load_proj_gui <- function (file_name, projects) {
+  project_id <- load_project(file_name, projects)
+  browser()
+  appendTab("tabs", project_tab(project_id), select = TRUE)
+}
+
 meaningful_name_path <- function(dataset_dir_list) {
   names_ <- xfun::sans_ext(dataset_dir_list)
   
@@ -194,9 +229,10 @@ meaningful_name_path <- function(dataset_dir_list) {
 
 
 ui <- fluidPage(
+  shinyjs::useShinyjs(),
   dashboardPage(
     header,
-    dashboardSidebar(disable = FALSE, collapsed = TRUE),
+    sidebar,
     dashboardBody(
       navbarPage(id = "tabs", position = "static-top", #, "fixed-top"
         "",
@@ -211,7 +247,7 @@ ui <- fluidPage(
 
 # Define server logic to read selected file ----
 server <- function(input, output) {
-  roots=c(wd='.', root=.Platform$OS.type)
+  roots = c(wd='.', root=.Platform$OS.type)
   dataset_names <- reactiveVal(value = list())
   dataset_names_right <- reactiveVal(value = list())  
   
@@ -261,7 +297,7 @@ server <- function(input, output) {
         
         multidataset_dirs <- check_multidatasets_dir(dir_name)
         multidataset_names <- meaningful_name_path(multidataset_dirs)
-        browser()
+        #browser()
         already_read <- unlist(lapply(seurat_objects(), function(x) x@misc$dir_name))
         
         for (i in 1:length(multidataset_dirs)) {
@@ -325,18 +361,7 @@ server <- function(input, output) {
           
         }
         
-        #set unique names to datasets
-        #unique_names <- as.list(
-        #  make.unique( 
-        #    unlist( 
-        #      c(names(seurat_objects()), names(seurat_objects_)) 
-        #      ) 
-        #    )
-        #  )
-        #if (length(seurat_objects()) > 0)
-        #  unique_names <-unique_names[-seq_len(length(seurat_objects()))] #R merda
-        #names(seurat_objects_) <- unique_names
-        
+
         seurat_objects(c(seurat_objects(), seurat_objects_))
         
         print("seurat_objects")
@@ -358,16 +383,10 @@ server <- function(input, output) {
       }
     )
     
-    
-    #tmp_list <- c(input$mydatasets$left, list(dataset_name))
-    #tmp_list <- as.list(make.unique( unlist( c(tmp_list, input$mydatasets$right) ) ))[1:length(tmp_list)]
-    
-    #dataset_names_right(input$mydatasets$right)
-    #dataset_names(tmp_list)
   })
   
   observeEvent(input$create_project, {
-    browser()
+    #browser()
     req(input$mydatasets)
     req(input$project_name)
     s_obj <- seurat_objects()[input$mydatasets$right]
@@ -383,6 +402,37 @@ server <- function(input, output) {
     )
   })
   
+  shinyFileSave(input, "save_project", roots = roots)
+  shinyFileChoose(input, "load_project", roots = roots)
+  
+  observeEvent(input$tabs, {
+    if (input$tabs != "Load Data") {
+      shinyjs::enable("save_project")
+    } else {
+      shinyjs::disable("save_project")
+    }
+    
+  })
+  
+  observeEvent(input$load_project,{
+    #browser()
+    req(!is.integer(input$load_project))
+    print(paste("Loading:", parseFilePaths(roots, input$load_project)))
+    load_proj_gui(parseFilePaths(roots, input$load_project), projects)
+  })
+  
+  observeEvent(input$save_project,{
+    req(input$tabs != "Load Data")
+    req(!is.integer(input$save_project))
+    #browser()
+    print(paste("Saving:", input$tabs, "in", parseSavePath(roots, input$save_project)))
+    save_project(input$tabs, parseSavePath(roots, input$save_project))
+  })
+  
+  
+  observeEvent(input$do_qc, {
+    quality_check(projects[[input$tabs]][["seurat_objs"]], input$perc_zeros, input$sigma_mito, input$multiplet_rate)
+  })
   output$selection <- renderPrint(
     input$mydatasets
   )
