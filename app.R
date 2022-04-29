@@ -31,6 +31,13 @@ body <- dashboardBody(
   tags$script(HTML("$('body').addClass('fixed');")),
   fluidRow(
     column(width = 3,
+      box(width = NULL, status = "warning",
+        title = "Recent Projects",
+        recent_project_list
+      )
+    ),
+               
+    column(width = 3,
            box(width = NULL, status = "warning",
                title = "Uploading Files",
                
@@ -244,7 +251,8 @@ meaningful_name_path <- function(dataset_dir_list) {
 }
 
 
-
+recent_project_list <- 
+  actionLink("proj_1",label = "project 1"),
 
 
 ui <- fluidPage(

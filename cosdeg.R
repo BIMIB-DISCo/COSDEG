@@ -38,7 +38,7 @@ suppressMessages(require(DoubletFinder))
 
 
 
-filter_offgenes <- function (s_data, summary_qc) {
+filter_offgenes <- function (s_data, summary_qc, s_data_satus) {
   s_data_dim <- list()
   data.filt <- list()
   selected_f0 <- list()
@@ -54,6 +54,8 @@ filter_offgenes <- function (s_data, summary_qc) {
     summary_qc["zero_genes",d] <- s_data_dim[d]
     
     print(dim(data.filt[[d]]))
+    
+    s_data_status[[d]][["offgenes"]] <- TRUE
   }
   return(list(data.filt = data.filt, selected_f0 = selected_f0, summary_qc = summary_qc))
 } 
@@ -75,6 +77,9 @@ filter_emptylets <- function (s_data, summary_qc, perc_zeros) {
     summary_qc["empty_cells",d] <- s_data_dim[d]
     
     print(dim(data.filt[[d]]))
+    
+    s_data_status[[d]][["emptylets"]] <- perc_zeros
+    data.filt[[d]][["selected_cE"]] <- selected_cE[[d]]
   }
   return(list(data.filt = data.filt, selected_cE = selected_cE, summary_qc = summary_qc))
 }
@@ -163,6 +168,9 @@ filter_doublets <- function (s_data, summary_qc, multiplet_rate) {
     summary_qc["doublets",d] <- s_data_dim[d]
     
     print(dim(data.filt[[d]]))
+    
+    s_data_status[[d]][["doublets"]] <- multiplet_rate
+    data.filt[[d]][["selected_cD"]] <- selected_cD[[d]]
   }
   
 
@@ -201,6 +209,9 @@ filter_lysed <- function (s_data, summary_qc, sigma_mito) {
     summary_qc["mitochodrial",d] <- s_data_dim[d]
     
     print(dim(data.filt[[d]]))
+    
+    s_data_status[[d]][["mitochodrial"]] <- sigma_mito
+    data.filt[[d]][["selected_cM"]] <- selected_cM[[d]]
   }
   return(list(data.filt = data.filt, selected_cM = selected_cM, summary_qc = summary_qc, perc_mitoc = perc_mitoc))
 }
