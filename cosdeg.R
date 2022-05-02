@@ -38,7 +38,7 @@ suppressMessages(require(DoubletFinder))
 
 
 
-filter_offgenes <- function (s_data, summary_qc, s_data_satus) {
+filter_offgenes <- function (s_data, summary_qc, s_data_status) {
   s_data_dim <- list()
   data.filt <- list()
   selected_f0 <- list()
@@ -55,13 +55,16 @@ filter_offgenes <- function (s_data, summary_qc, s_data_satus) {
     
     print(dim(data.filt[[d]]))
     
-    s_data_status[[d]][["offgenes"]] <- TRUE
+    #s_data_status[[d]] <- list()
+    
+    #browser()
+    #s_data_status[[d]][["offgenes"]] <- TRUE
   }
   return(list(data.filt = data.filt, selected_f0 = selected_f0, summary_qc = summary_qc))
 } 
 
 
-filter_emptylets <- function (s_data, summary_qc, perc_zeros) {
+filter_emptylets <- function (s_data, summary_qc, perc_zeros, s_data_status) {
   s_data_dim <- list()
   data.filt <- list()
   selected_cE <- list()
@@ -78,14 +81,14 @@ filter_emptylets <- function (s_data, summary_qc, perc_zeros) {
     
     print(dim(data.filt[[d]]))
     
-    s_data_status[[d]][["emptylets"]] <- perc_zeros
+    #s_data_status[[d]][["emptylets"]] <- perc_zeros
     data.filt[[d]][["selected_cE"]] <- selected_cE[[d]]
   }
   return(list(data.filt = data.filt, selected_cE = selected_cE, summary_qc = summary_qc))
 }
 
 
-filter_doublets <- function (s_data, summary_qc, multiplet_rate) {
+filter_doublets <- function (s_data, summary_qc, multiplet_rate, s_data_status) {
   
   s_data_dim <- list()
   data.filt <- list()
@@ -169,7 +172,7 @@ filter_doublets <- function (s_data, summary_qc, multiplet_rate) {
     
     print(dim(data.filt[[d]]))
     
-    s_data_status[[d]][["doublets"]] <- multiplet_rate
+    #s_data_status[[d]][["doublets"]] <- multiplet_rate
     data.filt[[d]][["selected_cD"]] <- selected_cD[[d]]
   }
   
@@ -181,7 +184,7 @@ filter_doublets <- function (s_data, summary_qc, multiplet_rate) {
 
 
 
-filter_lysed <- function (s_data, summary_qc, sigma_mito) {
+filter_lysed <- function (s_data, summary_qc, sigma_mito, s_data_status) {
   
   s_data_dim <- list()
   data.filt <- list()
@@ -210,7 +213,7 @@ filter_lysed <- function (s_data, summary_qc, sigma_mito) {
     
     print(dim(data.filt[[d]]))
     
-    s_data_status[[d]][["mitochodrial"]] <- sigma_mito
+    #s_data_status[[d]][["mitochodrial"]] <- sigma_mito
     data.filt[[d]][["selected_cM"]] <- selected_cM[[d]]
   }
   return(list(data.filt = data.filt, selected_cM = selected_cM, summary_qc = summary_qc, perc_mitoc = perc_mitoc))
@@ -253,6 +256,7 @@ quality_check <- function(s_data, perc_zeros, sigma_mito, multiplet_rate) {
   summary_qc <- data.frame()
   data.filt <- list()
   s_data_dim <- list()
+  s_data_status <- list()
   
   result <- pre_qc(s_data, summary_qc)
   summary_qc <- result$summary_qc
@@ -271,7 +275,7 @@ quality_check <- function(s_data, perc_zeros, sigma_mito, multiplet_rate) {
   
   summary_qc
   
-  result <- filter_offgenes(s_data, summary_qc)
+  result <- filter_offgenes(s_data, summary_qc, s_data_status)
   data.filt <- result$data.filt
   selected_f0 <- result$selected_f0
   summary_qc <- result$summary_qc
@@ -290,7 +294,7 @@ quality_check <- function(s_data, perc_zeros, sigma_mito, multiplet_rate) {
   
   summary_qc
   
-  result <- filter_emptylets(s_data, summary_qc, perc_zeros)
+  result <- filter_emptylets(s_data, summary_qc, perc_zeros, s_data_status)
   data.filt <- result$data.filt
   selected_cE <- result$selected_cE
   summary_qc <- result$summary_qc
@@ -313,7 +317,7 @@ quality_check <- function(s_data, perc_zeros, sigma_mito, multiplet_rate) {
   
   summary_qc
   
-  result <- filter_doublets(s_data, summary_qc, multiplet_rate)
+  result <- filter_doublets(s_data, summary_qc, multiplet_rate, s_data_status)
   data.filt <- result$data.filt
   selected_cD <- result$selected_cD
   summary_qc <- result$summary_qc
@@ -373,7 +377,7 @@ quality_check <- function(s_data, perc_zeros, sigma_mito, multiplet_rate) {
   # }
    
   
-  result <- filter_lysed(s_data, summary_qc, sigma_mito)
+  result <- filter_lysed(s_data, summary_qc, sigma_mito, s_data_status)
   data.filt <- result$data.filt
   selected_cM <- result$selected_cM
   summary_qc <- result$summary_qc

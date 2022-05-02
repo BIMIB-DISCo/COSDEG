@@ -131,13 +131,14 @@ load_project <- function(file_name, projects) {
   #browser()
   file_name <- file_name$datapath
   load(file_name)
+  #browser()
   if (!any(ls() == "COSDEG"))
     return(FALSE)
   
   if (!any(ls() == "project"))
     return(FALSE)
   
-  tmp_ <- normalize_proj_name(project_name)
+  tmp_ <- normalize_proj_name(project[["project_name"]])
   if (!is.null(tmp_))
     project_id <- tmp_
   else {
@@ -151,7 +152,7 @@ load_project <- function(file_name, projects) {
   
   project[["file_name"]] <- file_name
   
-  tmp_ <- normalize_tab_name(project_name)
+  tmp_ <- normalize_tab_name(project[["project_name"]])
   if (!is.null(tmp_))
     project[["tab_name"]] <- tmp_
   else {
@@ -159,7 +160,7 @@ load_project <- function(file_name, projects) {
   }
   
   
-  tmp_ <- normalize_tab_id(project_id)
+  tmp_ <- normalize_tab_id(project[["project_id"]])
   if (!is.null(tmp_))
     project[["tab_id"]] <- tmp_
   else {

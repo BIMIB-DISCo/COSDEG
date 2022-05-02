@@ -30,14 +30,24 @@ sidebar <- dashboardSidebar(
 body <- dashboardBody(
   tags$script(HTML("$('body').addClass('fixed');")),
   fluidRow(
-    column(width = 3,
+    column(width = 4,
       box(width = NULL, status = "warning",
-        title = "Recent Projects",
-        recent_project_list
+        title = "Recently Open Projects",
+        uiOutput("recent_projects_list", inline = FALSE),
+        br()
       )
     ),
-               
-    column(width = 3,
+    column(width = 8,
+      box(width = NULL, solidHeader = FALSE, title = "New Project",
+          status = "info",
+          textInput("project_name", "Project name", placeholder = "Choose a name"),
+          br()
+          #actionButton("create_project", "Create project")
+      )
+    )
+  ),
+  fluidRow(
+    column(width = 4,
            box(width = NULL, status = "warning",
                title = "Uploading Files",
                
@@ -75,27 +85,39 @@ body <- dashboardBody(
                actionButton("load_dataset", "Load dataset")
            )
     ),
-    column(width = 9,
+    column(width = 8,
            box(width = NULL, solidHeader = FALSE, title = "Select datasets",
                status = "success",
                uiOutput("mydatasets_out")  
            ),
-           box(width = NULL, collapsible = TRUE, collapsed = TRUE,
-               verbatimTextOutput("selection")
-           ),
-           box(width = NULL, solidHeader = FALSE, title = "Project",
-               status = "info",
-               textInput("project_name", "Project name", placeholder = "Choose a name"),
-               actionButton("create_project", "Create project")
-           ),
-           
+          # box(width = NULL, collapsible = TRUE, collapsed = TRUE,
+          #     verbatimTextOutput("selection")
+          # ),
+    
            box(width = NULL,
                collapsible = TRUE, collapsed = TRUE,
                # Output: Data file ----
                verbatimTextOutput("contents")
+           ),
+           box(width = NULL, solidHeader = FALSE,
+               status = "danger",
+               div(class = "pull-right",
+                actionButton("create_project", "Create project")
+               )
            )
     )
+  ),
+  fluidRow(
+    column(width = 7
+    ),
+    column(width = 3,
+          # box(width = NULL, solidHeader = FALSE,
+          #     status = "danger",
+          #     actionButton("create_project", "Create project")
+          # )
+    )
   )
+  
 )
 
 
@@ -227,16 +249,19 @@ project_tab <- function(project_id) {
   
 
 create_proj_gui <- function (project_name, selected_seurat_objs = NULL) {
-  browser()
+  #browser()
   project_id <- create_proj(project_name, selected_seurat_objs)
   appendTab("tabs", project_tab(project_id), select = TRUE)
 }
 
+
 load_proj_gui <- function (file_name, projects) {
   project_id <- load_project(file_name, projects)
-  browser()
+  #browser()
+  active_tab <<- project_id
   appendTab("tabs", project_tab(project_id), select = TRUE)
 }
+
 
 meaningful_name_path <- function(dataset_dir_list) {
   names_ <- xfun::sans_ext(dataset_dir_list)
@@ -251,9 +276,7 @@ meaningful_name_path <- function(dataset_dir_list) {
 }
 
 
-recent_project_list <- 
-  actionLink("proj_1",label = "project 1"),
-
+active_tab <- NULL
 
 ui <- fluidPage(
   shinyjs::useShinyjs(),
@@ -275,11 +298,63 @@ ui <- fluidPage(
 # Define server logic to read selected file ----
 server <- function(input, output) {
   roots = c(wd='.', root=.Platform$OS.type)
+  user_cosdeg_path <- getwd()
+  
+  #active_tab <- NULL  
+  
   dataset_names <- reactiveVal(value = list())
   dataset_names_right <- reactiveVal(value = list())  
   
   seurat_objects <- reactiveVal(value = list())
   
+  recent_projects_file_conf_ <- reactiveVal(file.path(user_cosdeg_path,"recent_projects.txt"))
+  
+  #recent_projects_file_conf <- file.path(user_cosdeg_path,"recent_projects.txt")
+  recent_projects_ <- reactiveValues(renderd=data.frame(projectname = c(),filename = c()))
+  rvs = reactiveValues(buttons = list(), observers = list()) 
+  
+  observeEvent(recent_projects_, {
+    if (file.exists(recent_projects_file_conf_())) {
+      recent_projects_files <- read.csv(recent_projects_file_conf_(), header = TRUE, sep = ",", strip.white = TRUE)
+      browser()
+      recent_projects_$renderd <- rbind(recent_projects_$renderd, recent_projects_files)
+      rownames(recent_projects_$renderd) <- recent_projects_$renderd$filename
+    }
+  }, once = TRUE)
+  
+  observe({
+    #browser()
+    if (length(recent_projects_$renderd)==0)
+      output$recent_projects_list <- renderText("No Projects")
+    else {
+      browser()
+      rvs$buttons <- apply(recent_projects_$renderd, MARGIN = 1, function(i){
+        flowLayout(actionLink(inputId = paste0(i["projectname"]), label = paste0(i["projectname"])))
+      })
+      
+      output$recent_projects_list <- renderUI({
+        do.call(shiny::tagList,as.list(rvs$buttons))
+      })
+      
+      rvs$observers = apply(
+        recent_projects_$renderd, MARGIN = 1,
+        function(i) {
+          observeEvent(input[[i["projectname"]]],
+                       print(sprintf("You clicked button number %s",i[["filename"]]))
+          )
+        }
+      )
+    
+    }
+    
+    
+    #browser()
+    
+  })
+  
+  observe({
+    req(recent_projects_)
+  })
   
   shinyDirChoose(input, 'dataset_dir', roots=roots, filetypes=c('', 'mtx'))
   output$dataset_dir <- renderText(
@@ -442,10 +517,25 @@ server <- function(input, output) {
   })
   
   observeEvent(input$load_project,{
-    #browser()
+    browser()
     req(!is.integer(input$load_project))
-    print(paste("Loading:", parseFilePaths(roots, input$load_project)))
+    print(paste("Loading:", parseFilePaths(roots, input$load_project)$datapath))
     load_proj_gui(parseFilePaths(roots, input$load_project), projects)
+    
+    if (!is.null(active_tab))
+      project_id <- active_tab
+    
+    browser()
+    prj <- list(
+      projectname = projects[[project_id]][["project_name"]], 
+      filename =  normalizePath(projects[[project_id]][["file_name"]]))
+    
+    #recent_projects_$renderd <- rbind(prj, isolate(recent_projects_$renderd))
+    recent_projects_$renderd[prj$filename,] <- prj
+    if (file.exists(recent_projects_file_conf_())) {
+      write.table(isolate(recent_projects_$renderd), file = recent_projects_file_conf_(), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
+    }
+    
   })
   
   observeEvent(input$save_project,{
@@ -454,6 +544,14 @@ server <- function(input, output) {
     #browser()
     print(paste("Saving:", input$tabs, "in", parseSavePath(roots, input$save_project)))
     save_project(input$tabs, parseSavePath(roots, input$save_project))
+    
+    prj <- list(projectname=projects[[project_id]][["project_name"]], filename=parseSavePath(roots, input$save_project))
+    
+    recent_projects_$renderd <- rbind(prj, isolate(recent_projects_$renderd))
+    if (file.exists(recent_projects_file_conf_())) {
+      write.csv(isolate(recent_projects_$renderd), file = recent_projects_file_conf_(), col.names =  TRUE, row.names = TRUE, sep = ",")
+    }
+    
   })
   
   
@@ -512,6 +610,10 @@ server <- function(input, output) {
   })
   
 }
+
+
+
+
 
 shinyApp(ui, server)
 
