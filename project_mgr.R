@@ -110,10 +110,18 @@ create_proj <- function(project_name, selected_seurat_objs = NULL ) {
 
 save_project <- function(project_id, file_name) {
   browser()
+  file_name <- file_name$datapath
+  
+  projects[[project_id]][["file_name"]] <- file_name
+  projects[[project_id]][["project_id"]] <- project_id
+  
+  
+  
   project <- projects[[project_id]]
   COSDEG <- project[["COSDEG"]]
-  file_name_path <- file_name$datapath
-  save(project, COSDEG , precheck = TRUE, file = file_name_path)
+  
+  save(project, COSDEG , precheck = TRUE, file = file_name)
+  return(project_id)
 }
 
 
@@ -128,8 +136,8 @@ loadRData <- function(filename, varname=NULL){
 
 
 load_project <- function(file_name, projects) {
-  #browser()
-  file_name <- file_name$datapath
+  browser()
+  #file_name <- file_name$datapath
   load(file_name)
   #browser()
   if (!any(ls() == "COSDEG"))

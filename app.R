@@ -255,12 +255,6 @@ create_proj_gui <- function (project_name, selected_seurat_objs = NULL) {
 }
 
 
-load_proj_gui <- function (file_name, projects) {
-  project_id <- load_project(file_name, projects)
-  #browser()
-  active_tab <<- project_id
-  appendTab("tabs", project_tab(project_id), select = TRUE)
-}
 
 
 meaningful_name_path <- function(dataset_dir_list) {
@@ -276,7 +270,6 @@ meaningful_name_path <- function(dataset_dir_list) {
 }
 
 
-active_tab <- NULL
 
 ui <- fluidPage(
   shinyjs::useShinyjs(),
@@ -298,36 +291,36 @@ ui <- fluidPage(
 # Define server logic to read selected file ----
 server <- function(input, output) {
   roots = c(wd='.', root=.Platform$OS.type)
+  
   user_cosdeg_path <- getwd()
   
-  #active_tab <- NULL  
-  
+
   dataset_names <- reactiveVal(value = list())
   dataset_names_right <- reactiveVal(value = list())  
   
   seurat_objects <- reactiveVal(value = list())
   
   recent_projects_file_conf_ <- reactiveVal(file.path(user_cosdeg_path,"recent_projects.txt"))
-  
   #recent_projects_file_conf <- file.path(user_cosdeg_path,"recent_projects.txt")
+  
   recent_projects_ <- reactiveValues(renderd=data.frame(projectname = c(),filename = c()))
   rvs = reactiveValues(buttons = list(), observers = list()) 
   
   observeEvent(recent_projects_, {
     if (file.exists(recent_projects_file_conf_())) {
       recent_projects_files <- read.csv(recent_projects_file_conf_(), header = TRUE, sep = ",", strip.white = TRUE)
-      browser()
+      #browser()
       recent_projects_$renderd <- rbind(recent_projects_$renderd, recent_projects_files)
       rownames(recent_projects_$renderd) <- recent_projects_$renderd$filename
     }
   }, once = TRUE)
   
-  observe({
+  observeEvent(recent_projects_$renderd, {
     #browser()
     if (length(recent_projects_$renderd)==0)
       output$recent_projects_list <- renderText("No Projects")
     else {
-      browser()
+      #browser()
       rvs$buttons <- apply(recent_projects_$renderd, MARGIN = 1, function(i){
         flowLayout(actionLink(inputId = paste0(i["projectname"]), label = paste0(i["projectname"])))
       })
@@ -339,9 +332,26 @@ server <- function(input, output) {
       rvs$observers = apply(
         recent_projects_$renderd, MARGIN = 1,
         function(i) {
-          observeEvent(input[[i["projectname"]]],
-                       print(sprintf("You clicked button number %s",i[["filename"]]))
-          )
+          observeEvent(input[[i["projectname"]]], {
+            print(sprintf("You clicked button number %s",isolate(i[["filename"]])))
+            print(paste("Loading:", parseFilePaths(roots, isolate(input$load_project))$datapath))
+            browser()
+            project_id <- load_project(isolate(i[["filename"]]), projects)
+            appendTab("tabs", project_tab(project_id), select = TRUE)
+            
+            prj <- list(
+              projectname = projects[[project_id]][["project_name"]], 
+              filename =  normalizePath(projects[[project_id]][["file_name"]]))
+            
+            renderd <- isolate(recent_projects_$renderd)[which(rownames(isolate(recent_projects_$renderd))!=prj$filename),]
+            renderd <- rbind(prj, renderd)
+            rownames(renderd) <- renderd[["filename"]]
+            
+            #if (file.exists(recent_projects_file_conf_())) {
+              write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
+            #}
+
+          })
         }
       )
     
@@ -520,21 +530,22 @@ server <- function(input, output) {
     browser()
     req(!is.integer(input$load_project))
     print(paste("Loading:", parseFilePaths(roots, input$load_project)$datapath))
-    load_proj_gui(parseFilePaths(roots, input$load_project), projects)
     
-    if (!is.null(active_tab))
-      project_id <- active_tab
+    project_id <- load_project(parseFilePaths(roots, input$load_project)$datapath, projects)
+    appendTab("tabs", project_tab(project_id), select = TRUE)
     
-    browser()
+
+    #browser()
     prj <- list(
       projectname = projects[[project_id]][["project_name"]], 
       filename =  normalizePath(projects[[project_id]][["file_name"]]))
     
-    #recent_projects_$renderd <- rbind(prj, isolate(recent_projects_$renderd))
-    recent_projects_$renderd[prj$filename,] <- prj
-    if (file.exists(recent_projects_file_conf_())) {
+    recent_projects_$renderd <- recent_projects_$renderd[which(rownames(recent_projects_$renderd)!=prj$filename),]
+    recent_projects_$renderd <- rbind(prj, recent_projects_$renderd)
+    #recent_projects_$renderd[prj$filename,] <- prj
+    #if (file.exists(recent_projects_file_conf_())) {
       write.table(isolate(recent_projects_$renderd), file = recent_projects_file_conf_(), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
-    }
+    #}
     
   })
   
@@ -543,14 +554,19 @@ server <- function(input, output) {
     req(!is.integer(input$save_project))
     #browser()
     print(paste("Saving:", input$tabs, "in", parseSavePath(roots, input$save_project)))
-    save_project(input$tabs, parseSavePath(roots, input$save_project))
+    project_id <- save_project(input$tabs, parseSavePath(roots, input$save_project))
     
-    prj <- list(projectname=projects[[project_id]][["project_name"]], filename=parseSavePath(roots, input$save_project))
     
-    recent_projects_$renderd <- rbind(prj, isolate(recent_projects_$renderd))
-    if (file.exists(recent_projects_file_conf_())) {
-      write.csv(isolate(recent_projects_$renderd), file = recent_projects_file_conf_(), col.names =  TRUE, row.names = TRUE, sep = ",")
-    }
+    browser()
+    prj <- list(
+      projectname = projects[[project_id]][["project_name"]], 
+      filename =  normalizePath(projects[[project_id]][["file_name"]]))
+    
+    recent_projects_$renderd[prj$filename,] <- prj
+    
+    #if (file.exists(recent_projects_file_conf_())) {
+      write.table(isolate(recent_projects_$renderd), file = recent_projects_file_conf_(), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
+    #}
     
   })
   
