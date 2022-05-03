@@ -7,6 +7,7 @@ library(Seurat)
 library(shinyFiles)
 library(ggplot2)
 library(dplyr)
+library(DT)
 
 source("cosdeg.R")
 
@@ -232,7 +233,7 @@ project_tab <- function(project_id) {
           title = "Emptylets",
           #plotOutput("emptylets")
           #tableOutput("summary_qc")
-          dataTableOutput(ns("summary_qc")),
+          DT::dataTableOutput(ns("summary_qc")),
           plotOutput(ns("emptylets_plot"))
         )
       )
@@ -292,7 +293,8 @@ qc_server <- function(id, input_id) {
       project <- reactiveVal(projects[[input_id]])
       #output$summary_qc <- NULL
       #output$emptylets_plot <- NULL
-      output$summary_qc <- renderDataTable(project()[["summary_qc"]])
+      output$summary_qc <- DT::renderDataTable(DT::datatable(project()[["summary_qc"]], options = list(dom = ''), rownames = TRUE))
+      
       output$emptylets_plot <- renderPlot(project()[["p"]])
       
       observeEvent(input$do_qc, {
