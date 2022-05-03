@@ -292,6 +292,79 @@ ui <- fluidPage(
 )
 
 
+
+qc_server <- function(id, input_id) {
+  moduleServer(
+    id,
+    function(input, output, session) {
+      
+      #project <- reactiveVal(projects[[input_id]])
+      #output$summary_qc <- NULL
+      #output$emptylets_plot <- NULL
+      output$summary_qc <- renderDataTable(project()[["summary_qc"]])
+      output$emptylets_plot <- renderPlot(project()[["p"]])
+      
+      observeEvent(input$do_qc, {
+        browser()
+        summary_qc <- data.frame()
+        
+        s_data <- projects[[input_id]][["seurat_objs"]]
+        
+        result <- pre_qc(s_data, summary_qc)
+        summary_qc <- result$summary_qc
+        
+        result <- filter_offgenes(s_data, summary_qc)
+        data.filt <- result$data.filt
+        #projects[[input_id]][["data.filt"]] <- data.filt
+        projects[[input_id]][["selected_f0"]] <<- result$selected_f0
+        summary_qc <- result$summary_qc
+        
+        print(paste("isolate(input$perc_zeros)", isolate(input$perc_zeros)))
+        result <- filter_emptylets(data.filt, summary_qc, isolate(input$perc_zeros))
+        data.filt <- result$data.filt
+        #projects[[input_id]][["data.filt"]] <- data.filt
+        projects[[input_id]][["selected_cE"]] <<- result$selected_cE
+        summary_qc <- result$summary_qc
+        
+        
+        projects[[input_id]][["data.filt"]] <<- data.filt
+        projects[[input_id]][["summary_qc"]] <<- summary_qc
+        print(projects[[input_id]][["summary_qc"]])
+        
+        browser()
+        df <- list()
+        for (n in names(s_data)) {
+          df[[n]] <- data.frame(nFeature_RNA = s_data[[n]]$nFeature_RNA, type = c( rep(n, dim(s_data[[n]])[[2]]))) 
+        }
+        df <- bind_rows(df)
+        
+        browser()
+        
+        projects[[input_id]][["p"]] <<- df %>% 
+          ggplot( aes(x=nFeature_RNA, color=type, fill=type)) +
+          geom_histogram(alpha=0.6, bins = 80) +
+          geom_vline(xintercept = 3, linetype="dotted", color = "black", size=1) +
+          xlab("") +
+          ylab("Frequency") +
+          facet_wrap(~type)
+        
+        #project(projects[[input_id]])
+        #
+        #print(project()) #### ERROR because it contains plot handles
+        #browser()
+        
+      })
+      
+      #project_reactive(projects[[input_id]])
+      
+      #browser()
+      #return(list(project_id = reactive(input_id), project = reactive(projects[[input_id]])))
+      return(project) ##not needed
+    }
+  )
+}
+
+
 # Define server logic to read selected file ----
 server <- function(input, output) {
   roots = c(wd='.', root=.Platform$OS.type)
@@ -363,7 +436,11 @@ server <- function(input, output) {
             #}
             
             print(project_id)
-            qc_server(project_id, input$tabs)
+            browser()
+            #aa <- qc_server(project_id, project_id)
+            qc_server(project_id, project_id)
+            #projects[[project_id]] <- aa()
+            
             
           }, ignoreInit = TRUE) #end oberveevent
         } #end function
@@ -512,7 +589,9 @@ server <- function(input, output) {
     s_obj <- seurat_objects()[input$mydatasets$right]
     create_proj_gui(input$project_name, selected_seurat_objs = s_obj)
     print(last_created_project_id)
-    qc_server(last_created_project_id, input$tabs)
+    #aa <- qc_server(last_created_project_id, input$tabs)
+    qc_server(last_created_project_id, last_created_project_id)
+    #projects[[project_id]] <- aa()
   })
   
   output$mydatasets_out <- renderUI({
@@ -558,8 +637,11 @@ server <- function(input, output) {
       write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
     #}
     
-    print(project_id)  
-    qc_server(project_id, input$tabs)
+    print(project_id)
+    browser()
+     #aa <- qc_server(project_id, project_id)
+    qc_server(project_id, project_id)
+    #projects[[project_id]] <- aa()
     
   })
   
@@ -599,65 +681,6 @@ server <- function(input, output) {
   
 } #end server
 
-qc_server <- function(id, input_id) {
-  moduleServer(
-    id,
-    function(input, output, session) {
-      observeEvent(input$do_qc, {
-        #browser()
-        summary_qc <- data.frame()
-        
-        s_data <- projects[[input_id]][["seurat_objs"]]
-        
-        result <- pre_qc(s_data, summary_qc)
-        summary_qc <- result$summary_qc
-        
-        result <- filter_offgenes(s_data, summary_qc)
-        data.filt <- result$data.filt
-        #projects[[input_id]][["data.filt"]] <- data.filt
-        projects[[input_id]][["selected_f0"]] <- result$selected_f0
-        summary_qc <- result$summary_qc
-        
-        print(paste("isolate(input$perc_zeros)", isolate(input$perc_zeros)))
-        result <- filter_emptylets(data.filt, summary_qc, isolate(input$perc_zeros))
-        data.filt <- result$data.filt
-        #projects[[input_id]][["data.filt"]] <- data.filt
-        projects[[input_id]][["selected_cE"]] <- result$selected_cE
-        summary_qc <- result$summary_qc
-        
-        
-        projects[[input_id]][["data.filt"]] <- data.filt
-        projects[[input_id]][["summary_qc"]] <- summary_qc
-        print(projects[[input_id]][["summary_qc"]])
-        
-        browser()
-        df <- list()
-        for (n in names(s_data)) {
-          df[[n]] <- data.frame(nFeature_RNA = s_data[[n]]$nFeature_RNA, type = c( rep(n, dim(s_data[[n]])[[2]]))) 
-        }
-        df <- bind_rows(df)
-        
-        browser()
-        
-        projects[[input_id]][["p"]] <- df %>% 
-          ggplot( aes(x=nFeature_RNA, color=type, fill=type)) +
-          geom_histogram(alpha=0.6, bins = 80) +
-          geom_vline(xintercept = 3, linetype="dotted", color = "black", size=1) +
-          xlab("") +
-          ylab("Frequency") +
-          facet_wrap(~type)
-        
-        
-        #browser()
-        #output$summary_qc <- renderTable(summary_qc)
-        output$summary_qc <- renderDataTable(projects[[input_id]][["summary_qc"]])
-        output$emptylets_plot <- renderPlot(projects[[input_id]][["p"]])
-        
-      })
-    }
-  )
-}
-  
 
 
 
