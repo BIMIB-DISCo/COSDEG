@@ -263,7 +263,7 @@ meaningful_name_path <- function(dataset_dir_list) {
   names_ <- stringr::str_split(unlist(names_),pattern = "/")
   dup_names_ <- unique(unlist(names_)[duplicated(unlist(names_))])
   unique(unlist(stringr::str_split(unlist(dataset_dir_list),pattern = "/")))
-  known <- "data|dataset|raw|filtered|barcode|feature|matrix|cazzo"
+  known <- "data|dataset|raw|filtered|barcode|feature|matrix"
   pat <- stringi::stri_replace_all_fixed(paste0(c(dup_names_,known),collapse = "|"), ".", "\\.")  
   probable_names <- lapply(names_,function(x){x[!stringi::stri_detect_regex(x, pattern = pat)]})
   return(probable_names)
@@ -301,7 +301,6 @@ server <- function(input, output) {
   seurat_objects <- reactiveVal(value = list())
   
   recent_projects_file_conf_ <- reactiveVal(file.path(user_cosdeg_path,"recent_projects.txt"))
-  #recent_projects_file_conf <- file.path(user_cosdeg_path,"recent_projects.txt")
   
   recent_projects_ <- reactiveValues(renderd=data.frame(projectname = c(),filename = c()))
   rvs = reactiveValues(buttons = list(), observers = list()) 
@@ -310,8 +309,12 @@ server <- function(input, output) {
     if (file.exists(recent_projects_file_conf_())) {
       recent_projects_files <- read.csv(recent_projects_file_conf_(), header = TRUE, sep = ",", strip.white = TRUE)
       #browser()
-      recent_projects_$renderd <- rbind(recent_projects_$renderd, recent_projects_files)
-      rownames(recent_projects_$renderd) <- recent_projects_$renderd$filename
+      renderd <- rbind(isolate(recent_projects_$renderd), recent_projects_files)
+      rownames(renderd) <- renderd$filename
+      if (length(renderd)>5)
+        renderd <- renderd[1:5,]
+      recent_projects_$renderd <- renderd
+      
     }
   }, once = TRUE)
   
@@ -320,7 +323,7 @@ server <- function(input, output) {
     if (length(recent_projects_$renderd)==0)
       output$recent_projects_list <- renderText("No Projects")
     else {
-      #browser()
+      #create the list of recent projects
       rvs$buttons <- apply(recent_projects_$renderd, MARGIN = 1, function(i){
         flowLayout(actionLink(inputId = paste0(i["projectname"]), label = paste0(i["projectname"])))
       })
@@ -329,12 +332,16 @@ server <- function(input, output) {
         do.call(shiny::tagList,as.list(rvs$buttons))
       })
       
+      browser()
+      #remove former button events 
+      lapply(rvs$observers, function(i) i$destroy())
+      
+      #add new events to the buttons
       rvs$observers = apply(
-        recent_projects_$renderd, MARGIN = 1,
+        isolate(recent_projects_$renderd), MARGIN = 1,
         function(i) {
           observeEvent(input[[i["projectname"]]], {
-            print(sprintf("You clicked button number %s",isolate(i[["filename"]])))
-            print(paste("Loading:", parseFilePaths(roots, isolate(input$load_project))$datapath))
+            print(paste("Loading:", isolate(i[["filename"]])))
             browser()
             project_id <- load_project(isolate(i[["filename"]]), projects)
             appendTab("tabs", project_tab(project_id), select = TRUE)
@@ -350,21 +357,14 @@ server <- function(input, output) {
             #if (file.exists(recent_projects_file_conf_())) {
               write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
             #}
-
-          })
-        }
+          }, ignoreInit = TRUE) #end oberveevent
+        } #end function
       )
-    
     }
-    
-    
     #browser()
-    
   })
   
-  observe({
-    req(recent_projects_)
-  })
+  
   
   shinyDirChoose(input, 'dataset_dir', roots=roots, filetypes=c('', 'mtx'))
   output$dataset_dir <- renderText(
@@ -540,11 +540,14 @@ server <- function(input, output) {
       projectname = projects[[project_id]][["project_name"]], 
       filename =  normalizePath(projects[[project_id]][["file_name"]]))
     
-    recent_projects_$renderd <- recent_projects_$renderd[which(rownames(recent_projects_$renderd)!=prj$filename),]
-    recent_projects_$renderd <- rbind(prj, recent_projects_$renderd)
-    #recent_projects_$renderd[prj$filename,] <- prj
+    renderd <- isolate(recent_projects_$renderd)
+    renderd <- renderd[which(rownames(renderd)!=prj$filename),]
+    renderd <- rbind(prj, renderd)
+    rownames(renderd) <- renderd[["filename"]]
+    recent_projects_$renderd <- renderd
+    
     #if (file.exists(recent_projects_file_conf_())) {
-      write.table(isolate(recent_projects_$renderd), file = recent_projects_file_conf_(), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
+      write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
     #}
     
   })

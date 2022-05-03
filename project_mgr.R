@@ -112,8 +112,8 @@ save_project <- function(project_id, file_name) {
   browser()
   file_name <- file_name$datapath
   
-  projects[[project_id]][["file_name"]] <- file_name
-  projects[[project_id]][["project_id"]] <- project_id
+  projects[[project_id]][["file_name"]] <<- file_name
+  projects[[project_id]][["project_id"]] <<- project_id
   
   
   
