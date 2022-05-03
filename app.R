@@ -75,15 +75,6 @@ body <- dashboardBody(
                
                textInput("dataset_name", "Dataset name", placeholder = "Choose a name"),
                
-               ## Input: Select number of rows to display ----
-               #radioButtons("disp", "Display", choices = c(Head = "head", All = "all"), selected = "head"),
-               #p(
-               # class = "text-muted",
-               # paste("Note: a route number can have several different trips, each",
-               #      "with a different path. Only the most commonly-used path will",
-               #       "be displayed on the map."
-               # )
-               #),
                actionButton("load_dataset", "Load dataset")
            )
     ),
@@ -298,7 +289,7 @@ qc_server <- function(id, input_id) {
     id,
     function(input, output, session) {
       
-      #project <- reactiveVal(projects[[input_id]])
+      project <- reactiveVal(projects[[input_id]])
       #output$summary_qc <- NULL
       #output$emptylets_plot <- NULL
       output$summary_qc <- renderDataTable(project()[["summary_qc"]])
@@ -307,8 +298,10 @@ qc_server <- function(id, input_id) {
       observeEvent(input$do_qc, {
         browser()
         summary_qc <- data.frame()
-        
-        s_data <- projects[[input_id]][["seurat_objs"]]
+        if (!is.null(input$qc_seurat_obj))
+          s_data <- projects[[input_id]][["seurat_objs"]][input$qc_seurat_obj]
+        else
+          s_data <- projects[[input_id]][["seurat_objs"]]
         
         result <- pre_qc(s_data, summary_qc)
         summary_qc <- result$summary_qc
@@ -348,7 +341,7 @@ qc_server <- function(id, input_id) {
           ylab("Frequency") +
           facet_wrap(~type)
         
-        #project(projects[[input_id]])
+        project(projects[[input_id]])
         #
         #print(project()) #### ERROR because it contains plot handles
         #browser()
