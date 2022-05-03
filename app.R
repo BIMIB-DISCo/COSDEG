@@ -19,6 +19,8 @@ header <- dashboardHeader(
 )
 
 
+last_created_project_id <- NULL
+
 sidebar <- dashboardSidebar(
   sidebarMenu(
     menuItem("Create Project", tabName = "Load Dataset"),
@@ -214,6 +216,7 @@ check_multidatasets_dir <- function(folder) {
 
 
 project_tab <- function(project_id) {
+  ns <- NS(project_id)
   tab <- tabPanel(title = projects[[project_id]][["tab_id"]],
     fluidRow(
       column(width = 3,
@@ -221,16 +224,16 @@ project_tab <- function(project_id) {
           title = "Quality Check",
           
           selectizeInput(
-            'qc_seurat_obj', 'Select datasets', 
+            inputId = ns("qc_seurat_obj"), label = "Select datasets", 
             choices = names(projects[[project_id]][["seurat_objs"]]),
             multiple = TRUE, options = list(maxItems = 10)
           ),
           
           
-          sliderInput("perc_zeros", label = "Zero genes per cell cutoff", 0.80, 1, value=0.95, step = 0.01),
-          sliderInput("sigma_mito", label = "Std mitochondrial content cutoff", 0.50, 2, value=1.0, step = 0.5),
-          sliderInput("multiplet_rate", label = "Doublets rate formation", 0.02, 0.2, value=0.04, step = 0.01),
-          actionButton("do_qc", "Quality check")
+          sliderInput(ns("perc_zeros"), label = "Zero genes per cell cutoff", 0.80, 1, value=0.95, step = 0.01),
+          sliderInput(ns("sigma_mito"), label = "Std mitochondrial content cutoff", 0.50, 2, value=1.0, step = 0.5),
+          sliderInput(ns("multiplet_rate"), label = "Doublets rate formation", 0.02, 0.2, value=0.04, step = 0.01),
+          actionButton(ns("do_qc"), "Quality check")
         )
       ),
       column(width = 9,
@@ -238,8 +241,8 @@ project_tab <- function(project_id) {
           title = "Emptylets",
           #plotOutput("emptylets")
           #tableOutput("summary_qc")
-          dataTableOutput("summary_qc"),
-          plotOutput("emptylets_plot")
+          dataTableOutput(ns("summary_qc")),
+          plotOutput(ns("emptylets_plot"))
         )
       )
     )
@@ -251,6 +254,7 @@ project_tab <- function(project_id) {
 create_proj_gui <- function (project_name, selected_seurat_objs = NULL) {
   #browser()
   project_id <- create_proj(project_name, selected_seurat_objs)
+  last_created_project_id <<- project_id 
   appendTab("tabs", project_tab(project_id), select = TRUE)
 }
 
@@ -357,6 +361,10 @@ server <- function(input, output) {
             #if (file.exists(recent_projects_file_conf_())) {
               write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
             #}
+            
+            print(project_id)
+            qc_server(project_id, input$tabs)
+            
           }, ignoreInit = TRUE) #end oberveevent
         } #end function
       )
@@ -498,11 +506,13 @@ server <- function(input, output) {
   })
   
   observeEvent(input$create_project, {
-    #browser()
+    browser()
     req(input$mydatasets)
     req(input$project_name)
     s_obj <- seurat_objects()[input$mydatasets$right]
     create_proj_gui(input$project_name, selected_seurat_objs = s_obj)
+    print(last_created_project_id)
+    qc_server(last_created_project_id, input$tabs)
   })
   
   output$mydatasets_out <- renderUI({
@@ -534,8 +544,6 @@ server <- function(input, output) {
     project_id <- load_project(parseFilePaths(roots, input$load_project)$datapath, projects)
     appendTab("tabs", project_tab(project_id), select = TRUE)
     
-
-    #browser()
     prj <- list(
       projectname = projects[[project_id]][["project_name"]], 
       filename =  normalizePath(projects[[project_id]][["file_name"]]))
@@ -549,6 +557,9 @@ server <- function(input, output) {
     #if (file.exists(recent_projects_file_conf_())) {
       write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
     #}
+    
+    print(project_id)  
+    qc_server(project_id, input$tabs)
     
   })
   
@@ -574,61 +585,80 @@ server <- function(input, output) {
   })
   
   
-  observeEvent(input$do_qc, {
-    browser()
-    #quality_check(projects[[isolate(input$tabs)]][["seurat_objs"]], input$perc_zeros, input$sigma_mito, input$multiplet_rate)
-  })
+  #observeEvent(input$do_qc, {
+  #  browser()
+  #  quality_check(projects[[isolate(input$tabs)]][["seurat_objs"]], input$perc_zeros, input$sigma_mito, input$multiplet_rate)
+  #})
+  #
   output$selection <- renderPrint(
     input$mydatasets
   )
   
   
-  observeEvent(input$perc_zeros, {
-    summary_qc <- data.frame()
-    
-    s_data <- projects[[isolate(input$tabs)]][["seurat_objs"]]
-    
-    result <- pre_qc(s_data, summary_qc)
-    summary_qc <- result$summary_qc
-    
-    result <- filter_offgenes(s_data, summary_qc)
-    data.filt <- result$data.filt
-    selected_f0 <- result$selected_f0
-    summary_qc <- result$summary_qc
-    
-    
-    result <- filter_emptylets(data.filt, summary_qc, isolate(input$perc_zeros))
-    data.filt <- result$data.filt
-    selected_cE <- result$selected_cE
-    summary_qc <- result$summary_qc
-    
-    print(summary_qc)
-    
-    browser()
-    df <- list()
-    for (n in names(s_data)) {
-      df[[n]] <- data.frame(nFeature_RNA = s_data[[n]]$nFeature_RNA, type = c( rep(n, dim(s_data[[n]])[[2]]))) 
-    }
-    df <- bind_rows(df)
-    
-    browser()
-    
-    p <- df %>% ggplot( aes(x=nFeature_RNA, color=type, fill=type)) +
-      geom_histogram(alpha=0.6, bins = 80) +
-      geom_vline(xintercept = 3, linetype="dotted", color = "black", size=1) +
-      xlab("") +
-      ylab("Frequency") +
-      facet_wrap(~type)
-    
-
-    #browser()
-    #output$summary_qc <- renderTable(summary_qc)
-    output$summary_qc <- renderDataTable(summary_qc)
-    output$emptylets_plot <- renderPlot(p)
-    
-  })
   
+  
+} #end server
+
+qc_server <- function(id, input_id) {
+  moduleServer(
+    id,
+    function(input, output, session) {
+      observeEvent(input$do_qc, {
+        #browser()
+        summary_qc <- data.frame()
+        
+        s_data <- projects[[input_id]][["seurat_objs"]]
+        
+        result <- pre_qc(s_data, summary_qc)
+        summary_qc <- result$summary_qc
+        
+        result <- filter_offgenes(s_data, summary_qc)
+        data.filt <- result$data.filt
+        #projects[[input_id]][["data.filt"]] <- data.filt
+        projects[[input_id]][["selected_f0"]] <- result$selected_f0
+        summary_qc <- result$summary_qc
+        
+        print(paste("isolate(input$perc_zeros)", isolate(input$perc_zeros)))
+        result <- filter_emptylets(data.filt, summary_qc, isolate(input$perc_zeros))
+        data.filt <- result$data.filt
+        #projects[[input_id]][["data.filt"]] <- data.filt
+        projects[[input_id]][["selected_cE"]] <- result$selected_cE
+        summary_qc <- result$summary_qc
+        
+        
+        projects[[input_id]][["data.filt"]] <- data.filt
+        projects[[input_id]][["summary_qc"]] <- summary_qc
+        print(projects[[input_id]][["summary_qc"]])
+        
+        browser()
+        df <- list()
+        for (n in names(s_data)) {
+          df[[n]] <- data.frame(nFeature_RNA = s_data[[n]]$nFeature_RNA, type = c( rep(n, dim(s_data[[n]])[[2]]))) 
+        }
+        df <- bind_rows(df)
+        
+        browser()
+        
+        projects[[input_id]][["p"]] <- df %>% 
+          ggplot( aes(x=nFeature_RNA, color=type, fill=type)) +
+          geom_histogram(alpha=0.6, bins = 80) +
+          geom_vline(xintercept = 3, linetype="dotted", color = "black", size=1) +
+          xlab("") +
+          ylab("Frequency") +
+          facet_wrap(~type)
+        
+        
+        #browser()
+        #output$summary_qc <- renderTable(summary_qc)
+        output$summary_qc <- renderDataTable(projects[[input_id]][["summary_qc"]])
+        output$emptylets_plot <- renderPlot(projects[[input_id]][["p"]])
+        
+      })
+    }
+  )
 }
+  
+
 
 
 

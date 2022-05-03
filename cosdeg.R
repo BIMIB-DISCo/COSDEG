@@ -73,6 +73,7 @@ filter_emptylets <- function (s_data, summary_qc, perc_zeros, s_data_status) {
   dataset_folders <- names(s_data)
   
   for (d in dataset_folders) {
+    #browser()
     selected_cE[[d]] <- colnames(s_data[[d]])[s_data[[d]]$nFeature_RNA/dim(s_data[[d]])[1]>=1-perc_zeros]
     data.filt[[d]] <- subset(s_data[[d]], cells = selected_cE[[d]])
     
