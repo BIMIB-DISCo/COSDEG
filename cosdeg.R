@@ -51,16 +51,16 @@ filter_offgenes <- function (s_data, summary_qc, s_data_status) {
     data.filt[[d]] <- subset(s_data[[d]], features = selected_f0[[d]])
     
     s_data_dim[[d]] <- list(dim(data.filt[[d]]))
-    summary_qc["zero_genes",d] <- s_data_dim[d]
+    summary_qc["offgenes",d] <- s_data_dim[d]
     
     print(dim(data.filt[[d]]))
     
-    #s_data_status[[d]] <- list()
+    s_data_status[d, "offgenes"] <- 1
     
     #browser()
     #s_data_status[[d]][["offgenes"]] <- TRUE
   }
-  return(list(data.filt = data.filt, selected_f0 = selected_f0, summary_qc = summary_qc))
+  return(list(data.filt = data.filt, selected_f0 = selected_f0, summary_qc = summary_qc, status=s_data_status))
 } 
 
 
@@ -78,14 +78,15 @@ filter_emptylets <- function (s_data, summary_qc, perc_zeros, s_data_status) {
     data.filt[[d]] <- subset(s_data[[d]], cells = selected_cE[[d]])
     
     s_data_dim[[d]] <- list(dim(data.filt[[d]]))
-    summary_qc["empty_cells",d] <- s_data_dim[d]
+    summary_qc["emptylets",d] <- s_data_dim[d]
     
     print(dim(data.filt[[d]]))
     
     #s_data_status[[d]][["emptylets"]] <- perc_zeros
+    s_data_status[d, "emptylets"] <- perc_zeros
     data.filt[[d]][["selected_cE"]] <- selected_cE[[d]]
   }
-  return(list(data.filt = data.filt, selected_cE = selected_cE, summary_qc = summary_qc))
+  return(list(data.filt = data.filt, selected_cE = selected_cE, summary_qc = summary_qc, status=s_data_status))
 }
 
 
@@ -174,13 +175,14 @@ filter_doublets <- function (s_data, summary_qc, multiplet_rate, s_data_status) 
     print(dim(data.filt[[d]]))
     
     #s_data_status[[d]][["doublets"]] <- multiplet_rate
+    s_data_status[d, "doublets"] <- multiplet_rate
     data.filt[[d]][["selected_cD"]] <- selected_cD[[d]]
   }
   
 
   return(list(data.filt = data.filt, selected_cD = selected_cD, 
               summary_qc = summary_qc, plots = plots, sweep.res = sweep.res, 
-              sweep.stats = sweep.stats, bcmvn = bcmvn, pK_choose = pK_choose))
+              sweep.stats = sweep.stats, bcmvn = bcmvn, pK_choose = pK_choose, status=s_data_status))
 }
 
 
@@ -215,9 +217,10 @@ filter_lysed <- function (s_data, summary_qc, sigma_mito, s_data_status) {
     print(dim(data.filt[[d]]))
     
     #s_data_status[[d]][["mitochodrial"]] <- sigma_mito
+    s_data_status[d, "mitochodrial"] <- sigma_mito
     data.filt[[d]][["selected_cM"]] <- selected_cM[[d]]
   }
-  return(list(data.filt = data.filt, selected_cM = selected_cM, summary_qc = summary_qc, perc_mitoc = perc_mitoc))
+  return(list(data.filt = data.filt, selected_cM = selected_cM, summary_qc = summary_qc, perc_mitoc = perc_mitoc, status=s_data_status))
 }
 
 
@@ -257,7 +260,7 @@ quality_check <- function(s_data, perc_zeros, sigma_mito, multiplet_rate) {
   summary_qc <- data.frame()
   data.filt <- list()
   s_data_dim <- list()
-  s_data_status <- list()
+  s_data_status <- data.frame()
   
   result <- pre_qc(s_data, summary_qc)
   summary_qc <- result$summary_qc
@@ -280,6 +283,7 @@ quality_check <- function(s_data, perc_zeros, sigma_mito, multiplet_rate) {
   data.filt <- result$data.filt
   selected_f0 <- result$selected_f0
   summary_qc <- result$summary_qc
+  s_data_status <- result$status
   
   # print("Remove genes with zero value in all samples")
   # selected_f0 <- list()
@@ -299,6 +303,7 @@ quality_check <- function(s_data, perc_zeros, sigma_mito, multiplet_rate) {
   data.filt <- result$data.filt
   selected_cE <- result$selected_cE
   summary_qc <- result$summary_qc
+  s_data_status <- result$status
   
   
   #print("Remove cells with insufficient number of reads")
@@ -324,6 +329,7 @@ quality_check <- function(s_data, perc_zeros, sigma_mito, multiplet_rate) {
   summary_qc <- result$summary_qc
   plots$doublets_filter <- result$plots
   pK_choose <- result$pK_choose
+  s_data_status <- result$status
   
   # print("Remove doublets")
   # 

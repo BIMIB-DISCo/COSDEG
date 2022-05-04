@@ -233,6 +233,7 @@ project_tab <- function(project_id) {
           title = "Emptylets",
           #plotOutput("emptylets")
           #tableOutput("summary_qc")
+          DT::dataTableOutput(ns("status")),
           DT::dataTableOutput(ns("summary_qc")),
           plotOutput(ns("emptylets_plot"))
         )
@@ -293,13 +294,20 @@ qc_server <- function(id, input_id) {
       project <- reactiveVal(projects[[input_id]])
       #output$summary_qc <- NULL
       #output$emptylets_plot <- NULL
+      
       output$summary_qc <- DT::renderDataTable(DT::datatable(project()[["summary_qc"]], options = list(dom = ''), rownames = TRUE))
+      
+      if(is.data.frame(project()[["status"]]))
+        output$status <- DT::renderDataTable(DT::datatable(t(project()[["status"]]), options = list(dom = ''), rownames = TRUE))
+      output$status <- DT::renderDataTable(DT::datatable(project()[["status"]], options = list(dom = ''), rownames = TRUE))
       
       output$emptylets_plot <- renderPlot(project()[["p"]])
       
       observeEvent(input$do_qc, {
         browser()
         summary_qc <- data.frame()
+        s_data_status <- data.frame()
+        
         if (!is.null(input$qc_seurat_obj))
           s_data <- projects[[input_id]][["seurat_objs"]][input$qc_seurat_obj]
         else
@@ -307,23 +315,27 @@ qc_server <- function(id, input_id) {
         
         result <- pre_qc(s_data, summary_qc)
         summary_qc <- result$summary_qc
+        #s_data_status <- result$status
         
-        result <- filter_offgenes(s_data, summary_qc)
+        result <- filter_offgenes(s_data, summary_qc, s_data_status)
         data.filt <- result$data.filt
         #projects[[input_id]][["data.filt"]] <- data.filt
         projects[[input_id]][["selected_f0"]] <<- result$selected_f0
         summary_qc <- result$summary_qc
+        s_data_status <- result$status
         
         print(paste("isolate(input$perc_zeros)", isolate(input$perc_zeros)))
-        result <- filter_emptylets(data.filt, summary_qc, isolate(input$perc_zeros))
+        result <- filter_emptylets(data.filt, summary_qc, isolate(input$perc_zeros), s_data_status)
         data.filt <- result$data.filt
         #projects[[input_id]][["data.filt"]] <- data.filt
         projects[[input_id]][["selected_cE"]] <<- result$selected_cE
         summary_qc <- result$summary_qc
+        s_data_status <- result$status
         
         
         projects[[input_id]][["data.filt"]] <<- data.filt
         projects[[input_id]][["summary_qc"]] <<- summary_qc
+        projects[[input_id]][["status"]] <<- s_data_status
         print(projects[[input_id]][["summary_qc"]])
         
         browser()
