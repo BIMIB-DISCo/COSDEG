@@ -1,6 +1,6 @@
 # COSDEG
 
-## ClOne Spacific Differentially Expressed Genes
+## Clone Specific Differentially Expressed Genes
 ------------------------------
 Create independent projects using datasets in different formats
 Load multiple datasets at once.
