@@ -34,19 +34,19 @@ body <- dashboardBody(
   tags$script(HTML("$('body').addClass('fixed');")),
   fluidRow(
     column(width = 4,
-      box(width = NULL, status = "warning",
-        title = "Recently Open Projects",
-        uiOutput("recent_projects_list", inline = FALSE),
-        br()
-      )
+           box(width = NULL, status = "warning",
+               title = "Recently Open Projects",
+               uiOutput("recent_projects_list", inline = FALSE),
+               br()
+           )
     ),
     column(width = 8,
-      box(width = NULL, solidHeader = FALSE, title = "New Project",
-          status = "info",
-          textInput("project_name", "Project name", placeholder = "Choose a name"),
-          br()
-          #actionButton("create_project", "Create project")
-      )
+           box(width = NULL, solidHeader = FALSE, title = "New Project",
+               status = "info",
+               textInput("project_name", "Project name", placeholder = "Choose a name"),
+               br()
+               #actionButton("create_project", "Create project")
+           )
     )
   ),
   fluidRow(
@@ -84,10 +84,10 @@ body <- dashboardBody(
                status = "success",
                uiOutput("mydatasets_out")  
            ),
-          # box(width = NULL, collapsible = TRUE, collapsed = TRUE,
-          #     verbatimTextOutput("selection")
-          # ),
-    
+           # box(width = NULL, collapsible = TRUE, collapsed = TRUE,
+           #     verbatimTextOutput("selection")
+           # ),
+           
            box(width = NULL,
                collapsible = TRUE, collapsed = TRUE,
                # Output: Data file ----
@@ -96,7 +96,7 @@ body <- dashboardBody(
            box(width = NULL, solidHeader = FALSE,
                status = "danger",
                div(class = "pull-right",
-                actionButton("create_project", "Create project")
+                   actionButton("create_project", "Create project")
                )
            )
     )
@@ -105,10 +105,10 @@ body <- dashboardBody(
     column(width = 7
     ),
     column(width = 3,
-          # box(width = NULL, solidHeader = FALSE,
-          #     status = "danger",
-          #     actionButton("create_project", "Create project")
-          # )
+           # box(width = NULL, solidHeader = FALSE,
+           #     status = "danger",
+           #     actionButton("create_project", "Create project")
+           # )
     )
   )
   
@@ -117,6 +117,7 @@ body <- dashboardBody(
 
 # check is a dataset folder
 check_dataset_dir <- function(folder) {
+  browser()
   if (is.null(folder))
     return(NULL)
   if(dir.exists(folder)) {
@@ -209,50 +210,123 @@ check_multidatasets_dir <- function(folder) {
 
 project_tab <- function(project_id) {
   ns <- NS(project_id)
+  browser()
   tab <- tabPanel(title = projects[[project_id]][["tab_id"]],
-    fluidRow(
-      column(width = 3,
-        box(width = NULL, status = "warning",
-          title = "Quality Check",
-          
-          selectizeInput(
-            inputId = ns("qc_seurat_obj"), label = "Select datasets", 
-            choices = names(projects[[project_id]][["seurat_objs"]]),
-            multiple = TRUE, options = list(maxItems = 10)
-          ),
-          
-          
-          sliderInput(ns("perc_zeros"), label = "Zero genes per cell cutoff", 0.80, 1, value=0.95, step = 0.01),
-          sliderInput(ns("sigma_mito"), label = "Std mitochondrial content cutoff", 0.50, 2, value=1.0, step = 0.5),
-          sliderInput(ns("multiplet_rate"), label = "Doublets rate formation", 0.02, 0.2, value=0.04, step = 0.01),
-          actionButton(ns("do_qc"), "Quality check")
-        )
-      ),
-      column(width = 9,
-        box(width = NULL, status = "warning",
-          title = "Emptylets",
-          #plotOutput("emptylets")
-          #tableOutput("summary_qc")
-          DT::dataTableOutput(ns("status")),
-          DT::dataTableOutput(ns("summary_qc")),
-          plotOutput(ns("emptylets_plot"))
-        )
-      )
-    )
+                  fluidRow(
+                    column(width = 3,
+                           box(width = NULL, status = "warning",
+                               title = "Quality Check",
+                               
+                               selectizeInput(
+                                 inputId = ns("qc_seurat_obj"), label = "Select datasets", 
+                                 choices = names(projects[[project_id]][["seurat_objs"]]),
+                                 multiple = TRUE, options = list(maxItems = 10)
+                               ),
+                               
+                               sliderInput(ns("perc_zeros"), label = "Zero genes per cell cutoff", 0.80, 1, value=0.95, step = 0.01),
+                               sliderInput(ns("sigma_mito"), label = "Std mitochondrial content cutoff", 0.50, 2, value=1.0, step = 0.5),
+                               sliderInput(ns("multiplet_rate"), label = "Doublets rate formation", 0.02, 0.2, value=0.04, step = 0.01),
+                               actionButton(ns("do_qc"), "Quality check")
+                           )
+                    ),
+                    column(width = 6,
+                           box(width = NULL, status = "warning",
+                               title = "Emptylets",
+                               #plotOutput("emptylets")
+                               #tableOutput("summary_qc")
+                               DT::dataTableOutput(ns("status")),
+                               DT::dataTableOutput(ns("summary_qc")),
+                               plotOutput(ns("emptylets_plot"))
+                           )
+                    ),
+                    column(width = 3,
+                          #  box(width = NULL, solidHeader = FALSE,
+                          #       title = 'Merge and cluster',
+                          #      status = "danger",
+                          #      div(class = "pull-right",
+                          #          actionButton(ns("merge_and_cluster"), "Next")
+                          #      )
+                          #  )
+                           box(width = NULL, status = "warning",
+                               title = "Merging and clustering",
+                               
+                               selectizeInput(
+                                 inputId = ns("tomerge_seurat_obj"), label = " to merge", 
+                                 choices = names(projects[[project_id]][["data.filt"]]),
+                                 multiple = TRUE, options = list(maxItems = 10)
+                               ),
+                               
+                               # sliderInput(ns("perc_zeros"), label = "Zero genes per cell cutoff", 0.80, 1, value=0.95, step = 0.01),
+                               # sliderInput(ns("sigma_mito"), label = "Std mitochondrial content cutoff", 0.50, 2, value=1.0, step = 0.5),
+                               # sliderInput(ns("multiplet_rate"), label = "Doublets rate formation", 0.02, 0.2, value=0.04, step = 0.01),
+                               actionButton(ns("merge_and_cluster"), "Perform merging and clustering"),
+                               uiOutput("tomergedatasets_out")
+                           ),
+                          box(width = NULL, solidHeader = FALSE, title = "Select clusters",
+                            status = "success",
+                            uiOutput("mydeg_out")  
+                          ),
+                    )
+
+                  )
   )
   return(tab)
 }
-  
 
-create_proj_gui <- function (project_name, selected_seurat_objs = NULL) {
+clustering_tab <- function(project_id) {
+  browser()
+  ns <- NS(project_id)
+  tab <- tabPanel(title = 'Clustering',
+                  fluidRow(
+                    column(width = 1,
+                           box(width = NULL, status = "warning",
+                               title = "Merging",
+
+                              #  selectizeInput(
+                              #    inputId = ns("tomerge_seurat_obj"), label = "Select datasets", 
+                              #    choices = names(projects[[project_id]][["seurat_objs"]]),
+                              #    multiple = TRUE, options = list(maxItems = 10)
+                              #  ),
+                               actionButton(ns("clustering"), "Perform clustering")
+                           )
+                    )# ,
+
+                    # column(width = 6,
+                    #        box(width = NULL, status = "warning",
+                    #            title = "Emptylets",
+                    #            #plotOutput("emptylets")
+                    #            #tableOutput("summary_qc")
+                    #            DT::dataTableOutput(ns("status")),
+                    #            DT::dataTableOutput(ns("summary_qc")),
+                    #            plotOutput(ns("emptylets_plot"))
+                    #        )
+                    # ),
+                    # column(width = 3,
+                    #        box(width = NULL, solidHeader = FALSE,
+                    #            status = "danger",
+                    #            div(class = "pull-right",
+                    #                actionButton(ns("merge"), "merge")
+                    #            )
+                    #        )
+                    # )
+                  )
+  )
+  return(tab)
+}
+
+create_proj_gui <- function(project_name, selected_seurat_objs = NULL) {
   #browser()
   project_id <- create_proj(project_name, selected_seurat_objs)
   last_created_project_id <<- project_id 
   appendTab("tabs", project_tab(project_id), select = TRUE)
 }
 
-
-
+create_clustering_gui <- function() {
+  browser()
+  # project_id <- create_proj(project_name, selected_seurat_objs)
+  # last_created_project_id <<- project_id 
+  appendTab("tabs", clustering_tab(last_created_project_id), select = TRUE)
+}
 
 meaningful_name_path <- function(dataset_dir_list) {
   names_ <- xfun::sans_ext(dataset_dir_list)
@@ -266,8 +340,6 @@ meaningful_name_path <- function(dataset_dir_list) {
   return(probable_names)
 }
 
-
-
 ui <- fluidPage(
   shinyjs::useShinyjs(),
   dashboardPage(
@@ -275,16 +347,14 @@ ui <- fluidPage(
     sidebar,
     dashboardBody(
       navbarPage(id = "tabs", position = "static-top", #, "fixed-top"
-        "",
-        tabPanel("Load Data",
-          body
-        )         
+                 "",
+                 tabPanel("Load Data",
+                          body
+                 )
       )
     )
   )
 )
-
-
 
 qc_server <- function(id, input_id) {
   moduleServer(
@@ -292,6 +362,9 @@ qc_server <- function(id, input_id) {
     function(input, output, session) {
       
       project <- reactiveVal(projects[[input_id]])
+      
+      cluster_names <- reactiveVal(value = list())
+      
       #output$summary_qc <- NULL
       #output$emptylets_plot <- NULL
       
@@ -345,7 +418,7 @@ qc_server <- function(id, input_id) {
         }
         df <- bind_rows(df)
         
-        browser()
+        
         
         projects[[input_id]][["p"]] <<- df %>% 
           ggplot( aes(x=nFeature_RNA, color=type, fill=type)) +
@@ -354,13 +427,62 @@ qc_server <- function(id, input_id) {
           xlab("") +
           ylab("Frequency") +
           facet_wrap(~type)
-        
+
+        ns <- session$ns
+        browser()
+         # output$tomergedatasets_out <- renderUI({
+            #updateSelectizeInput(session = session, inputId = ns("tomerge_seurat_obj"), label = "Select datasets to merge", choices = names(projects[[input_id]][["seurat_objs"]]), options =  list(maxItems = 10), server = TRUE)
+          #})
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "tomerge_seurat_obj", label = "Select datasets to merge", choices = names(projects[[input_id]][["data.filt"]]), options =  list(maxItems = 10), server = TRUE)   
         project(projects[[input_id]])
         #
         #print(project()) #### ERROR because it contains plot handles
         #browser()
         
       })
+      
+
+
+      observeEvent(input$merge_and_cluster, {
+        browser()
+        if (!is.null(input$tomerge_seurat_obj))
+          s_data <- projects[[input_id]][["data.filt"]][input$qc_seurat_obj]
+        else
+          s_data <- projects[[input_id]][["data.filt"]]
+        
+        
+        
+        # create_clustering_gui()
+        
+        alldata <- merge(s_data[[1]], s_data[-1], add.cell.ids = names(s_data))
+        res = cluster_seurat_obj(alldata)
+        alldata = res$data.clustered
+        # 
+        cluster_names(allData$seurat_clusters)
+        # alldata = NormalizeData(alldata)
+        # sens_org = 'H130001.out'
+        # res_org = 'H130002.out'
+        
+        # key = 'orig.ident'
+        
+        # df_deg = deg_analysis(alldata, key=key, group=sens_org, reference=res_org)
+        
+        
+                  # create_clustering_gui(input_id)
+                  # clustering_server(last_created_project_id, last_created_project_id)
+                })
+      
+      output$mydeg_out <- renderUI({
+        browser()
+        #req(input$dataset_dir)
+        #req(dataset_names())
+        req(input$merge_and_cluster)
+        chooserInput("mydegs", "Available clusters", #"Selected datasets",
+                     cluster_names(), # dataset_names_right(), 
+                     size = 10, multiple = TRUE
+        )
+      })
+
       
       #project_reactive(projects[[input_id]])
       
@@ -371,14 +493,12 @@ qc_server <- function(id, input_id) {
   )
 }
 
-
 # Define server logic to read selected file ----
 server <- function(input, output) {
-  roots = c(wd='.', root=.Platform$OS.type)
-  
+  roots = getVolumes()()#c(wd='.', root=.Platform$OS.type)
+  # names(roots) = gsub(pattern = ' ', replacement='_', x = names(roots))
   user_cosdeg_path <- getwd()
   
-
   dataset_names <- reactiveVal(value = list())
   dataset_names_right <- reactiveVal(value = list())  
   
@@ -439,7 +559,7 @@ server <- function(input, output) {
             rownames(renderd) <- renderd[["filename"]]
             
             #if (file.exists(recent_projects_file_conf_())) {
-              write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
+            write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
             #}
             
             print(project_id)
@@ -546,7 +666,7 @@ server <- function(input, output) {
                 c(names(seurat_objects()), names(seurat_objects_), dataset_name) 
               ) 
             )
-        
+          
           dataset_name <- unique_names[length(unique_names)]
           
           Misc(object = seurat_object, slot = "name") <- dataset_name
@@ -565,7 +685,7 @@ server <- function(input, output) {
           
         }
         
-
+        
         seurat_objects(c(seurat_objects(), seurat_objects_))
         
         print("seurat_objects")
@@ -590,13 +710,13 @@ server <- function(input, output) {
   })
   
   observeEvent(input$create_project, {
-    browser()
     req(input$mydatasets)
     req(input$project_name)
     s_obj <- seurat_objects()[input$mydatasets$right]
     create_proj_gui(input$project_name, selected_seurat_objs = s_obj)
     print(last_created_project_id)
     #aa <- qc_server(last_created_project_id, input$tabs)
+    browser()
     qc_server(last_created_project_id, last_created_project_id)
     #projects[[project_id]] <- aa()
   })
@@ -641,12 +761,12 @@ server <- function(input, output) {
     recent_projects_$renderd <- renderd
     
     #if (file.exists(recent_projects_file_conf_())) {
-      write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
+    write.table(renderd, file = isolate(recent_projects_file_conf_()), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
     #}
     
     print(project_id)
     browser()
-     #aa <- qc_server(project_id, project_id)
+    #aa <- qc_server(project_id, project_id)
     qc_server(project_id, project_id)
     #projects[[project_id]] <- aa()
     
@@ -668,7 +788,7 @@ server <- function(input, output) {
     recent_projects_$renderd[prj$filename,] <- prj
     
     #if (file.exists(recent_projects_file_conf_())) {
-      write.table(isolate(recent_projects_$renderd), file = recent_projects_file_conf_(), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
+    write.table(isolate(recent_projects_$renderd), file = recent_projects_file_conf_(), col.names =  TRUE, row.names = FALSE, sep = ",", quote = FALSE)
     #}
     
   })
