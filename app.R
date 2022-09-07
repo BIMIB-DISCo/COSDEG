@@ -251,7 +251,7 @@ project_tab <- function(project_id) {
                                title = "Merging and clustering",
                                
                                selectizeInput(
-                                 inputId = ns("tomerge_seurat_obj"), label = " to merge", 
+                                 inputId = ns("tomerge_seurat_obj"), label = "Select datasets to merge", 
                                  choices = names(projects[[project_id]][["data.filt"]]),
                                  multiple = TRUE, options = list(maxItems = 10)
                                ),
@@ -331,7 +331,8 @@ create_clustering_gui <- function() {
 meaningful_name_path <- function(dataset_dir_list) {
   names_ <- xfun::sans_ext(dataset_dir_list)
   
-  names_ <- stringr::str_split(unlist(names_),pattern = "/")
+  names_ <- stringi::stri_split_regex(unlist(names_),pattern = "/", omit_empty = TRUE)
+  
   dup_names_ <- unique(unlist(names_)[duplicated(unlist(names_))])
   unique(unlist(stringr::str_split(unlist(dataset_dir_list),pattern = "/")))
   known <- "data|dataset|raw|filtered|barcode|feature|matrix"
@@ -406,6 +407,29 @@ qc_server <- function(id, input_id) {
         s_data_status <- result$status
         
         
+        ###
+        print(paste("isolate(input$sigma_mito)", isolate(input$sigma_mito)))
+        result <- filter_lysed(data.filt, summary_qc, isolate(input$sigma_mito), s_data_status)
+        data.filt <- result$data.filt
+        #projects[[input_id]][["data.filt"]] <- data.filt
+        projects[[input_id]][["selected_cM"]] <<- result$selected_cM
+        summary_qc <- result$summary_qc
+        s_data_status <- result$status
+        
+        print(paste("isolate(input$multiplet_rate)", isolate(input$multiplet_rate)))
+        result <- filter_doublets(data.filt, summary_qc, isolate(input$multiplet_rate), s_data_status)
+        data.filt <- result$data.filt
+        #projects[[input_id]][["data.filt"]] <- data.filt
+        projects[[input_id]][["selected_cD"]] <<- result$selected_cD
+        summary_qc <- result$summary_qc
+        s_data_status <- result$status
+        plots <- result$plots
+        ###
+        
+        
+        
+        
+        
         projects[[input_id]][["data.filt"]] <<- data.filt
         projects[[input_id]][["summary_qc"]] <<- summary_qc
         projects[[input_id]][["status"]] <<- s_data_status
@@ -433,7 +457,7 @@ qc_server <- function(id, input_id) {
          # output$tomergedatasets_out <- renderUI({
             #updateSelectizeInput(session = session, inputId = ns("tomerge_seurat_obj"), label = "Select datasets to merge", choices = names(projects[[input_id]][["seurat_objs"]]), options =  list(maxItems = 10), server = TRUE)
           #})
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "tomerge_seurat_obj", label = "Select datasets to merge", choices = names(projects[[input_id]][["data.filt"]]), options =  list(maxItems = 10), server = TRUE)   
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "tomerge_seurat_obj", choices = names(projects[[input_id]][["data.filt"]]), options =  list(maxItems = 10), server = TRUE)   
         project(projects[[input_id]])
         #
         #print(project()) #### ERROR because it contains plot handles
@@ -455,17 +479,21 @@ qc_server <- function(id, input_id) {
         # create_clustering_gui()
         
         alldata <- merge(s_data[[1]], s_data[-1], add.cell.ids = names(s_data))
+        
         res = cluster_seurat_obj(alldata)
         alldata = res$data.clustered
         # 
-        cluster_names(allData$seurat_clusters)
-        # alldata = NormalizeData(alldata)
-        # sens_org = 'H130001.out'
-        # res_org = 'H130002.out'
+        cluster_names(alldata$seurat_clusters)
+        alldata = NormalizeData(alldata)
         
-        # key = 'orig.ident'
+        Idents(object = alldata) <- "orig.ident" #se no col cavolo che funziona
         
-        # df_deg = deg_analysis(alldata, key=key, group=sens_org, reference=res_org)
+        sens_org = 'Complete'
+        res_org = 'No4factors'
+        
+        key = 'orig.ident'
+        
+        df_deg = deg_analysis(alldata, key=key, group=sens_org, reference=res_org)
         
         
                   # create_clustering_gui(input_id)
@@ -621,7 +649,7 @@ server <- function(input, output) {
         
         multidataset_dirs <- check_multidatasets_dir(dir_name)
         multidataset_names <- meaningful_name_path(multidataset_dirs)
-        #browser()
+        browser()
         already_read <- unlist(lapply(seurat_objects(), function(x) x@misc$dir_name))
         
         for (i in 1:length(multidataset_dirs)) {
@@ -650,7 +678,6 @@ server <- function(input, output) {
             }
           )
           
-          seurat_object <- CreateSeuratObject(counts = expression_matrix)
           
           dataset_name <- input$dataset_name
           if(stringr::str_length(dataset_name) == 0)
@@ -668,6 +695,9 @@ server <- function(input, output) {
             )
           
           dataset_name <- unique_names[length(unique_names)]
+          
+          seurat_object <- CreateSeuratObject(counts = expression_matrix, project = dataset_name)
+          
           
           Misc(object = seurat_object, slot = "name") <- dataset_name
           Misc(object = seurat_object, slot = "dir_name") <- multidataset_dirs[[i]]

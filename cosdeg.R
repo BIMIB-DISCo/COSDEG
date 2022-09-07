@@ -104,7 +104,7 @@ filter_doublets <- function (s_data, summary_qc, multiplet_rate, s_data_status) 
   pca_npcs <- 20
   umap_npcs <- 10
   doublets_npcs <- 10
-  douplets_pN <- 0.25
+  doublets_pN <- 0.25
   
   plots <- list()
   
@@ -131,30 +131,31 @@ filter_doublets <- function (s_data, summary_qc, multiplet_rate, s_data_status) 
     sweep.res[[d]] <- paramSweep_v3(data.filt[[d]], PCs = 1:doublets_npcs) 
     sweep.stats[[d]] <- summarizeSweep(sweep.res[[d]], GT = FALSE) 
     bcmvn[[d]] <- find.pK(sweep.stats[[d]])
-    
-    x <- plot(x = bc.mvn$ParamID, y = bc.mvn$MeanAUC, pch = 18, 
+    #browser()
+    x <- plot(x = bcmvn[[d]]$ParamID, y = bcmvn[[d]]$MeanAUC, pch = 18, 
               col = "black", cex = 0.75, xlab = NA, ylab = NA)
-    x <- lines(x = bc.mvn$ParamID, y = bc.mvn$MeanAUC, col = "black", lty = 2)
+    x <- lines(x = bcmvn[[d]]$ParamID, y = bcmvn[[d]]$MeanAUC, col = "black", lty = 2)
     plots$AUC[[d]] <- x 
     
     par(new = TRUE)
-    x <- plot(x = bc.mvn$ParamID, y = bc.mvn$BCmetric, pch = 16, col = "#41b6c4", cex = 0.75)
+    x <- plot(x = bcmvn[[d]]$ParamID, y = bcmvn[[d]]$BCmetric, pch = 16, col = "#41b6c4", cex = 0.75)
     axis(side = 4)
-    x <- lines(x = bc.mvn$ParamID, y = bc.mvn$BCmetric, col = "#41b6c4")
+    x <- lines(x = bcmvn[[d]]$ParamID, y = bcmvn[[d]]$BCmetric, col = "#41b6c4")
     plots$BCmetric[[d]] <- x
     
     plots$parameter_estimation[[d]] <- barplot(bcmvn[[d]]$BCmetric, names.arg = bcmvn[[d]]$pK, las=2)
   }
-  
+  #browser()
   for (d in dataset_folders) {
     pK <- as.numeric(as.character(bcmvn[[d]]$pK))
     BCmetric <- bcmvn[[d]]$BCmetric
     pK_choose[[d]] <- pK[which(BCmetric%in%max(BCmetric))]
   }
-  
+  #browser()
   for (d in dataset_folders) {
     # define the expected number of doublet cells.
     nExp <- round(ncol(data.filt[[d]]) * multiplet_rate)  # expect 4% doublets
+    
     data.filt[[d]] <- doubletFinder_v3(data.filt[[d]], pN = doublets_pN, pK = pK_choose[[d]], nExp = nExp, PCs = 1:doublets_npcs)
     
     # name of the DF prediction can change, so extract the correct column name.
@@ -179,7 +180,7 @@ filter_doublets <- function (s_data, summary_qc, multiplet_rate, s_data_status) 
     data.filt[[d]][["selected_cD"]] <- selected_cD[[d]]
   }
   
-
+  browser()
   return(list(data.filt = data.filt, selected_cD = selected_cD, 
               summary_qc = summary_qc, plots = plots, sweep.res = sweep.res, 
               sweep.stats = sweep.stats, bcmvn = bcmvn, pK_choose = pK_choose, status=s_data_status))
