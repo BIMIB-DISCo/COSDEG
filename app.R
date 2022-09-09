@@ -256,16 +256,44 @@ project_tab <- function(project_id) {
                                  multiple = TRUE, options = list(maxItems = 10)
                                ),
                                
-                               # sliderInput(ns("perc_zeros"), label = "Zero genes per cell cutoff", 0.80, 1, value=0.95, step = 0.01),
-                               # sliderInput(ns("sigma_mito"), label = "Std mitochondrial content cutoff", 0.50, 2, value=1.0, step = 0.5),
-                               # sliderInput(ns("multiplet_rate"), label = "Doublets rate formation", 0.02, 0.2, value=0.04, step = 0.01),
-                               actionButton(ns("merge_and_cluster"), "Perform merging and clustering"),
+                               
+                               actionButton(ns("do_merge_and_cluster"), "Perform merging and clustering"),
                                uiOutput("tomergedatasets_out")
                            ),
                           box(width = NULL, solidHeader = FALSE, title = "Select clusters",
                             status = "success",
                             uiOutput("mydeg_out")  
                           ),
+                          
+                          box(width = NULL, solidHeader = FALSE, title = "Gene Expression Comparisons",
+                              status = "success",
+                              selectizeInput(
+                                inputId = ns("meta_var_comparison_sel"), label = "Select plastic variable",
+                                choices = projects[[project_id]][["meta_var_comparison"]],
+                                multiple = TRUE, options = list(maxItems = 1)
+                              ),
+                              selectizeInput(
+                                inputId = ns("meta_var_strat_sel"), label = "Select stratifying variables",
+                                choices = projects[[project_id]][["meta_var_strat"]],
+                                multiple = TRUE, options = list(maxItems = 10)
+                              ),
+                              selectizeInput(inputId = ns("meta_var_non_strat"), label = "Non-stratifying variables", 
+                                             choices =projects[[project_id]][["meta_var_non_strat"]],
+                                             multiple = TRUE, options = list(
+                                               maxItems = 4,
+                                               maxOptions = 3,
+                                               openOnFocus = FALSE,
+                                               'create' = FALSE,
+                                               'persist' = FALSE,
+                                               onDelete = I('function(values) { return false;}'),
+                                               onType = I('function(str) {  document.dispatchEvent(new KeyboardEvent("keydown", {"key": "a"}));}'),
+                                               onChange = I('function(values) { return onBlur();}'),
+                                               onFocus = I('function() { return onBlur();}')
+                                             ),
+                                             selected= projects[[project_id]][["meta_var_non_strat"]]
+                              )
+                          ),
+                          
                     )
 
                   )
@@ -467,13 +495,15 @@ qc_server <- function(id, input_id) {
       
 
 
-      observeEvent(input$merge_and_cluster, {
+      observeEvent(input$do_merge_and_cluster, {
         browser()
         if (!is.null(input$tomerge_seurat_obj))
           s_data <- projects[[input_id]][["data.filt"]][input$qc_seurat_obj]
         else
-          s_data <- projects[[input_id]][["data.filt"]]
-        
+          #if (!is.null(dim(projects[[input_id]][["data.filt"]])))
+            s_data <- projects[[input_id]][["data.filt"]]
+          #else
+            #print("no filtered dataset: do QC")  
         
         
         # create_clustering_gui()
@@ -493,18 +523,87 @@ qc_server <- function(id, input_id) {
         
         key = 'orig.ident'
         
-        df_deg = deg_analysis(alldata, key=key, group=sens_org, reference=res_org)
+        #metadata
+        clones <- c("c1","c2","c3","c4","c5")
+        times <- c("t1","t2","t3","t4")
+        drug <- c("azd","mk")
+        dosage <- c("1ug","5ug","10ug")
+        type <- c("resistant","sensible","undefined")
+        dd <- dim(alldata)[2]
+        metadata_ <- data.frame(list(
+          clones=sample(clones, dd, replace=TRUE),
+          times=sample(times, dd, replace=TRUE),
+          drug=sample(drug, dd, replace=TRUE),
+          dosage=sample(dosage, dd, replace=TRUE),
+          type=sample(type, dd, replace=TRUE)
+        ))
+        rownames(metadata_) <- colnames(alldata)
+        
+        projects[[input_id]][["metadata_"]] <<-metadata_
+        
+        
+        #projects[[input_id]][["meta_var_comparison"]] <<- colnames(metadata_)
+        #projects[[input_id]][["meta_var_comparison_sel"]] <<- input$meta_var_comparison_sel
+        
+        #df0 <- metadata_[,setdiff(projects[[input_id]][["meta_var_comparison"]],projects[[input_id]][["meta_var_comparison_sel"]])]
+        
+        #projects[[input_id]][["meta_var_strat"]] <<- lapply(as.list(df0), function(x) x[!duplicated(x)])
+        #projects[[input_id]][["meta_var_strat_sel"]] <<- input$meta_var_strat_sel
+        
+        
+        
+        #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 10), server = TRUE)
+        
+        #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = TRUE)
+        
+        
+        my_meta_vars <- meta_vars(metadata_, var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
+        
+        projects[[input_id]][["meta_var_comparison"]] <<- my_meta_vars$var_comparison
+        projects[[input_id]][["meta_var_comparison_sel"]] <<- input$var_comparison_sel
+        
+        projects[[input_id]][["meta_var_strat"]] <<- my_meta_vars$var_strat
+        projects[[input_id]][["meta_var_strat_sel"]] <<- input$var_strat_sel
+        
+        
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
+        
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+        
+        #df_deg = deg_analysis(alldata, key=key, group=sens_org, reference=res_org)
         
         
                   # create_clustering_gui(input_id)
                   # clustering_server(last_created_project_id, last_created_project_id)
-                })
+        
+        
+      })
+      
+      observeEvent(input$meta_var_comparison_sel, {
+        #my_meta_vars <- meta_vars(metadata_, var_strat_sel = projects[[input_id]][["meta_var_strat_sel"]], var_comparison_sel = projects[[input_id]][["meta_var_strat_sel"]])
+        
+        my_meta_vars <- meta_vars(metadata_, var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
+        
+        projects[[input_id]][["meta_var_comparison"]] <<- my_meta_vars$var_comparison
+        projects[[input_id]][["meta_var_comparison_sel"]] <<- input$var_comparison_sel
+        
+        projects[[input_id]][["meta_var_strat"]] <<- my_meta_vars$var_strat
+        projects[[input_id]][["meta_var_strat_sel"]] <<- input$var_strat_sel
+        
+        
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
+        
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+        
+        
+        
+      })
       
       output$mydeg_out <- renderUI({
         browser()
         #req(input$dataset_dir)
         #req(dataset_names())
-        req(input$merge_and_cluster)
+        req(input$do_merge_and_cluster)
         chooserInput("mydegs", "Available clusters", #"Selected datasets",
                      cluster_names(), # dataset_names_right(), 
                      size = 10, multiple = TRUE

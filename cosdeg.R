@@ -603,6 +603,68 @@ deg_analysis = function(seu_obj, key, group, reference) {
 
 
 
+
+
+meta_vars <- function(metadata_df, var_comparison_sel, var_strat_sel) {
+  browser()
+  var_comparison <- colnames(metadata_df)
+  var_comparison
+  
+  df0 <- metadata_df[,setdiff(var_comparison,var_comparison_sel), drop=FALSE]
+  df0
+  
+  var_strat <- lapply(as.list(df0), function(x) x[!duplicated(x)])
+  var_strat
+  
+  var_non_strat <- colnames(df0)
+  var_non_strat
+  
+  #if (is.null(var_strat_sel))
+  #  df1 <- df0
+  #else
+    df1 <- df0[rowSums(sapply(df0, `%in%`, var_strat_sel)) >= length(var_strat_sel), , drop=FALSE]
+  df1 #df1 contains only rows with all the var_strat_sel
+  
+  
+  var_non_strat_null <- colnames(df1[,sapply(df1, function(x) length(x[!duplicated(x)]))==1, drop=FALSE])
+  var_non_strat_null
+  
+  #var_strat_null <- df1[,sapply(df1, function(x) length(x[!duplicated(x)]))==1]
+  #var_strat_null <- as.vector(t(var_strat_null))
+  #var_strat_null <- var_strat_null[!duplicated(var_strat_null)]
+  #var_strat_null
+  
+  var_non_strat <- setdiff(var_non_strat, var_non_strat_null)
+  var_non_strat
+  
+  df2 <- df1[, var_non_strat, drop=FALSE]
+  df2 #df2 contains rows with non stratified variables
+  
+  var_strat <- lapply(as.list(df2), function(x) x[!duplicated(x)])
+  var_strat
+  
+  external_res <- expand.grid(c(list(unique(metadata_df[,var_comparison_sel])), var_strat_sel))
+  if (is.null(var_strat_sel))
+    external_res <- data.frame(list(unique(metadata_df[,var_comparison_sel,drop=FALSE])))
+  if (is.null(var_comparison_sel))  
+    external_res <- data.frame(list(var_strat_sel))
+  
+    
+  
+  colnames(external_res) <- c(var_comparison_sel, var_strat_sel)
+  external_res
+  
+  if (length(var_strat_sel)+length(var_comparison_sel)>=2)
+    com <- as.data.frame(combn(as.data.frame(t(as.matrix(external_res))),2))
+  else
+    com <- external_res
+  
+  
+  xx <- c(metadata_df= list(df2), var_comparison = list(var_comparison), var_comparison_sel=var_comparison_sel, var_strat=list(var_strat), var_strat_sel=var_strat_sel, var_non_strat=list(var_non_strat))
+  return(xx)
+  
+}
+
 # # remove all objects that will not be used.
 # rm(s_data,tmp_expression)
 # 
