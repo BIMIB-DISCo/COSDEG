@@ -270,7 +270,7 @@ project_tab <- function(project_id) {
                               selectizeInput(
                                 inputId = ns("meta_var_comparison_sel"), label = "Select plastic variable",
                                 choices = projects[[project_id]][["meta_var_comparison"]],
-                                multiple = TRUE, options = list(maxItems = 1)
+                                multiple = TRUE, options = list(maxItems = 2)
                               ),
                               selectizeInput(
                                 inputId = ns("meta_var_strat_sel"), label = "Select stratifying variables",
@@ -560,13 +560,13 @@ qc_server <- function(id, input_id) {
         my_meta_vars <- meta_vars(metadata_, var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
         
         projects[[input_id]][["meta_var_comparison"]] <<- my_meta_vars$var_comparison
-        projects[[input_id]][["meta_var_comparison_sel"]] <<- input$var_comparison_sel
+        projects[[input_id]][["meta_var_comparison_sel"]] <<- my_meta_vars$var_comparison_sel
         
         projects[[input_id]][["meta_var_strat"]] <<- my_meta_vars$var_strat
-        projects[[input_id]][["meta_var_strat_sel"]] <<- input$var_strat_sel
+        projects[[input_id]][["meta_var_strat_sel"]] <<- my_meta_vars$var_strat_sel
         
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 1), server = TRUE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
@@ -585,13 +585,13 @@ qc_server <- function(id, input_id) {
         my_meta_vars <- meta_vars(metadata_, var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
         
         projects[[input_id]][["meta_var_comparison"]] <<- my_meta_vars$var_comparison
-        projects[[input_id]][["meta_var_comparison_sel"]] <<- input$var_comparison_sel
+        projects[[input_id]][["meta_var_comparison_sel"]] <<- my_meta_vars$var_comparison_sel
         
         projects[[input_id]][["meta_var_strat"]] <<- my_meta_vars$var_strat
-        projects[[input_id]][["meta_var_strat_sel"]] <<- input$var_strat_sel
+        projects[[input_id]][["meta_var_strat_sel"]] <<- my_meta_vars$var_strat_sel
         
-        
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
+        browser()
+        #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 1), server = TRUE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
