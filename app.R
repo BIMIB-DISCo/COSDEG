@@ -8,6 +8,7 @@ library(shinyFiles)
 library(ggplot2)
 library(dplyr)
 library(DT)
+library(sortable)
 
 source("cosdeg.R")
 
@@ -272,6 +273,10 @@ project_tab <- function(project_id) {
                                 choices = projects[[project_id]][["meta_var_comparison"]],
                                 multiple = TRUE, options = list(maxItems = 2)
                               ),
+                              
+                              h2("test"),
+                              uiOutput(ns("meta_var_comparison_sel_values")),
+                              
                               selectizeInput(
                                 inputId = ns("meta_var_strat_sel"), label = "Select stratifying variables",
                                 choices = projects[[project_id]][["meta_var_strat"]],
@@ -291,7 +296,16 @@ project_tab <- function(project_id) {
                                                onFocus = I('function() { return onBlur();}')
                                              ),
                                              selected= projects[[project_id]][["meta_var_non_strat"]]
-                              )
+                              ),
+                              
+                              
+                              selectizeInput(
+                                inputId = ns("meta_all_var_strat_sel"), label = "Select stratifying variables",
+                                choices = projects[[project_id]][["all_var_strat"]],
+                                multiple = TRUE, options = list(maxItems = 10)
+                              ),
+                              
+                              
                           ),
                           
                     )
@@ -394,6 +408,8 @@ qc_server <- function(id, input_id) {
       
       cluster_names <- reactiveVal(value = list())
       
+      var_comparison_sel_values <- reactiveVal(value = list())
+      
       #output$summary_qc <- NULL
       #output$emptylets_plot <- NULL
       
@@ -495,10 +511,19 @@ qc_server <- function(id, input_id) {
       
 
 
+      output$meta_var_comparison_sel_values <- renderUI({
+        rank_list(
+          text = "You can select multiple items, then drag as a group",
+          labels = var_comparison_sel_values(), #projects[[project_id]][["var_comparison_sel_values"]],
+          input_id = "meta_var_comparison_sel_values",
+          options = sortable_options(multiDrag = TRUE)
+        )
+      })
+      
       observeEvent(input$do_merge_and_cluster, {
         browser()
         if (!is.null(input$tomerge_seurat_obj))
-          s_data <- projects[[input_id]][["data.filt"]][input$qc_seurat_obj]
+          s_data <- projects[[input_id]][["data.filt"]][input$tomerge_seurat_obj]
         else
           #if (!is.null(dim(projects[[input_id]][["data.filt"]])))
             s_data <- projects[[input_id]][["data.filt"]]
@@ -507,9 +532,10 @@ qc_server <- function(id, input_id) {
         
         
         # create_clustering_gui()
-        
-        alldata <- merge(s_data[[1]], s_data[-1], add.cell.ids = names(s_data))
-        
+        if (length(s_data[-1])>0)
+          alldata <- merge(s_data[[1]], s_data[-1], add.cell.ids = names(s_data))
+        else
+          alldata <- s_data[[1]]
         res = cluster_seurat_obj(alldata)
         alldata = res$data.clustered
         # 
@@ -557,18 +583,26 @@ qc_server <- function(id, input_id) {
         #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = TRUE)
         
         
-        my_meta_vars <- meta_vars(metadata_, var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
+        my_meta_vars <- meta_vars(projects[[input_id]][["metadata_"]], var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
         
         projects[[input_id]][["meta_var_comparison"]] <<- my_meta_vars$var_comparison
         projects[[input_id]][["meta_var_comparison_sel"]] <<- my_meta_vars$var_comparison_sel
+        projects[[input_id]][["meta_var_comparison_sel_values"]] <<- my_meta_vars$var_comparison_sel_values
         
         projects[[input_id]][["meta_var_strat"]] <<- my_meta_vars$var_strat
         projects[[input_id]][["meta_var_strat_sel"]] <<- my_meta_vars$var_strat_sel
         
+        projects[[input_id]][["meta_all_var_strat"]] <<- my_meta_vars$all_var_strat
+        
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 1), server = TRUE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
         
+        var_comparison_sel_values(projects[[input_id]][["var_comparison_sel_values"]])
+        
+        
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+        
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10), server = TRUE)#, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
         
         #df_deg = deg_analysis(alldata, key=key, group=sens_org, reference=res_org)
         
@@ -582,22 +616,53 @@ qc_server <- function(id, input_id) {
       observeEvent(input$meta_var_comparison_sel, {
         #my_meta_vars <- meta_vars(metadata_, var_strat_sel = projects[[input_id]][["meta_var_strat_sel"]], var_comparison_sel = projects[[input_id]][["meta_var_strat_sel"]])
         
-        my_meta_vars <- meta_vars(metadata_, var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
+        my_meta_vars <- meta_vars(projects[[input_id]][["metadata_"]], var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
         
         projects[[input_id]][["meta_var_comparison"]] <<- my_meta_vars$var_comparison
         projects[[input_id]][["meta_var_comparison_sel"]] <<- my_meta_vars$var_comparison_sel
+        projects[[input_id]][["meta_var_comparison_sel_values"]] <<- my_meta_vars$var_comparison_sel_values
+        
         
         projects[[input_id]][["meta_var_strat"]] <<- my_meta_vars$var_strat
         projects[[input_id]][["meta_var_strat_sel"]] <<- my_meta_vars$var_strat_sel
         
+        projects[[input_id]][["meta_all_var_strat"]] <<- my_meta_vars$all_var_strat
+        
         browser()
         #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 1), server = TRUE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
         
+        var_comparison_sel_values(projects[[input_id]][["meta_var_comparison_sel_values"]])
+        
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = TRUE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+        
+        #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10), server = TRUE)#, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
         
         
         
       })
+      
+      
+      observeEvent(input$meta_var_strat_sel, {
+        my_meta_vars <- meta_vars(projects[[input_id]][["metadata_"]], var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
+        
+        projects[[input_id]][["meta_var_comparison"]] <<- my_meta_vars$var_comparison
+        projects[[input_id]][["meta_var_comparison_sel"]] <<- my_meta_vars$var_comparison_sel
+        projects[[input_id]][["meta_var_comparison_sel_values"]] <<- my_meta_vars$var_comparison_sel_values
+        
+        
+        projects[[input_id]][["meta_var_strat"]] <<- my_meta_vars$var_strat
+        projects[[input_id]][["meta_var_strat_sel"]] <<- my_meta_vars$var_strat_sel
+        
+        projects[[input_id]][["meta_all_var_strat"]] <<- my_meta_vars$all_var_strat
+        
+        browser()
+        #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 1), server = TRUE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
+        
+        #var_comparison_sel_values(projects[[input_id]][["meta_var_comparison_sel_values"]])
+        
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+      })
+      
       
       output$mydeg_out <- renderUI({
         browser()

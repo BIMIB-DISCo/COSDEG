@@ -610,6 +610,12 @@ meta_vars <- function(metadata_df, var_comparison_sel, var_strat_sel) {
   var_comparison <- colnames(metadata_df)
   var_comparison
   
+  var_comparison_sel_values <- unique(metadata_df[,var_comparison_sel])
+  
+  all_var_strat <- lapply(as.list(metadata_df), function(x) x[!duplicated(x)])
+  all_var_strat
+  ##
+  
   df0 <- metadata_df[,setdiff(var_comparison,var_comparison_sel), drop=FALSE]
   df0
   
@@ -641,7 +647,7 @@ meta_vars <- function(metadata_df, var_comparison_sel, var_strat_sel) {
   df2 #df2 contains rows with non stratified variables
   
   var_strat <- lapply(as.list(df2), function(x) x[!duplicated(x)])
-  var_strat
+  var_strat <- c(var_strat,var_strat_sel)
   
   external_res <- expand.grid(c(list(unique(metadata_df[,var_comparison_sel])), var_strat_sel))
   if (is.null(var_strat_sel))
@@ -660,7 +666,7 @@ meta_vars <- function(metadata_df, var_comparison_sel, var_strat_sel) {
     com <- external_res
   
   
-  xx <- c(metadata_df= list(df2), var_comparison = list(var_comparison), var_comparison_sel=var_comparison_sel, var_strat=list(var_strat), var_strat_sel=var_strat_sel, var_non_strat=list(var_non_strat))
+  xx <- c(metadata_df= list(df2), var_comparison = list(var_comparison), var_comparison_sel=var_comparison_sel, var_comparison_sel_values=list(var_comparison_sel_values), all_var_strat=list(all_var_strat), var_strat=list(var_strat), var_strat_sel=list(var_strat_sel), var_non_strat=list(var_non_strat))
   return(xx)
   
 }
