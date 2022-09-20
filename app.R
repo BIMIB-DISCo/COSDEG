@@ -46,7 +46,6 @@ body <- dashboardBody(
                status = "info",
                textInput("project_name", "Project name", placeholder = "Choose a name"),
                br()
-               #actionButton("create_project", "Create project")
            )
     )
   ),
@@ -55,15 +54,15 @@ body <- dashboardBody(
            box(width = NULL, status = "warning",
                title = "Uploading Files",
                
-               # Input: Select a file ----
+               # Input: Select a dir ----
                shinyDirButton('dataset_dir', label='Dir select', title='Please select a dataset', multiple=FALSE),
                textOutput("dataset_dir"),
                
-               # Horizontal line ----
+               # Horizontal line ---
                tags$hr(),
                
                
-               # Input: Select separator ----
+               # Input: Select file type ----
                radioButtons("dataset_type", "Dataset type:",
                             choices = c("10X genomics mtx(.gz) matrix, barcodes and features" = "10X_mtx",
                                         "10X hdf5" = "10X_h5",
@@ -72,11 +71,13 @@ body <- dashboardBody(
                             selected = "10X_mtx"
                ),
                
-               # Horizontal line ----
+               # Horizontal line ---
                tags$hr(),
                
+               # Input: Assign datasaet name ----
                textInput("dataset_name", "Dataset name", placeholder = "Choose a name"),
                
+               # Input: Load datasaets ----
                actionButton("load_dataset", "Load dataset")
            )
     ),
@@ -85,13 +86,11 @@ body <- dashboardBody(
                status = "success",
                uiOutput("mydatasets_out")  
            ),
-           # box(width = NULL, collapsible = TRUE, collapsed = TRUE,
-           #     verbatimTextOutput("selection")
-           # ),
+           
            
            box(width = NULL,
                collapsible = TRUE, collapsed = TRUE,
-               # Output: Data file ----
+               # Output: Data file ---
                verbatimTextOutput("contents")
            ),
            box(width = NULL, solidHeader = FALSE,
@@ -106,10 +105,6 @@ body <- dashboardBody(
     column(width = 7
     ),
     column(width = 3,
-           # box(width = NULL, solidHeader = FALSE,
-           #     status = "danger",
-           #     actionButton("create_project", "Create project")
-           # )
     )
   )
   
@@ -130,7 +125,9 @@ check_dataset_dir <- function(folder) {
     if(length(mtx)>1) {
       print("Found multiple datasets")
       mtx_files <- lapply(mtx, basename)
+      
       test_fun <- function(x){stringi::stri_detect_regex(mtx_files, pattern=x)}
+      
       test_string <- c(".h5")
       res_test <- sapply(test_string, test_fun)
       if (any(res_test)) { # if h5 add files and check rest
@@ -156,7 +153,9 @@ check_dataset_dir <- function(folder) {
                               no.. = TRUE, recursive = TRUE
       )
       mtx_basefiles <- lapply(mtx_files, basename)
+      
       test_fun <- function(x){any(stringi::stri_detect_regex(mtx_basefiles, pattern=x))}
+      
       test_string <- c("barcodes.tsv","features.tsv","matrix.mtx")
       if (all(sapply(test_string, test_fun))) {
         return(mtx_dir)
@@ -244,15 +243,23 @@ project_tab <- function(project_id) {
                            box(width = NULL, status = "warning",
                                title = "Quality Check",
                                
+                               # Input: Select datasets for QC ----
                                selectizeInput(
                                  inputId = ns("qc_seurat_obj"), label = "Select datasets", 
                                  choices = names(projects[[project_id]][["seurat_objs"]]),
                                  multiple = TRUE, options = list(maxItems = 10)
                                ),
                                
+                               # Input: % of zeros filter ----
                                sliderInput(ns("perc_zeros"), label = "Zero genes per cell cutoff", 0.80, 1, value=0.95, step = 0.01),
+                               
+                               # Input: Select mitochondrial std filter ----
                                sliderInput(ns("sigma_mito"), label = "Std mitochondrial content cutoff", 0.50, 2, value=1.0, step = 0.5),
+                               
+                               # Input: Select doublets filter ----
                                sliderInput(ns("multiplet_rate"), label = "Doublets rate formation", 0.02, 0.2, value=0.04, step = 0.01),
+                               
+                               # Input: Start QC ----
                                actionButton(ns("do_qc"), "Quality check")
                            )
                     ),
@@ -261,39 +268,45 @@ project_tab <- function(project_id) {
                                title = "Emptylets",
                                #plotOutput("emptylets")
                                #tableOutput("summary_qc")
+                               # Output: status ----
                                DT::dataTableOutput(ns("status")),
+                               br(),
+                               tags$hr(),
+                               # Output: summary QC ----
                                DT::dataTableOutput(ns("summary_qc")),
+                               br(),
+                               tags$hr(),
+                               # Output: emtylets plot ----
                                plotOutput(ns("emptylets_plot"))
                            )
                     ),
                     column(width = 3,
-                          #  box(width = NULL, solidHeader = FALSE,
-                          #       title = 'Merge and cluster',
-                          #      status = "danger",
-                          #      div(class = "pull-right",
-                          #          actionButton(ns("merge_and_cluster"), "Next")
-                          #      )
-                          #  )
+            
                            box(width = NULL, status = "warning",
                                title = "Merging and clustering",
                                
+                               # Input: Merge sto casso ----
                                selectizeInput(
                                  inputId = ns("tomerge_seurat_obj"), label = "Select datasets to merge", 
                                  choices = names(projects[[project_id]][["data.filt"]]),
                                  multiple = TRUE, options = list(maxItems = 10)
                                ),
                                
-                               
+                               # Input: do merge ----
                                actionButton(ns("do_merge_and_cluster"), "Perform merging and clustering"),
                                uiOutput("tomergedatasets_out")
                            ),
-                          box(width = NULL, solidHeader = FALSE, title = "Select clusters",
-                            status = "success",
-                            uiOutput("mydeg_out")  
-                          ),
+                           
+                          #box(width = NULL, solidHeader = FALSE, title = "Select clusters",
+                          #  status = "success",
+                          #  uiOutput("mydeg_out")  
+                          #),
+                          
                           
                           box(width = NULL, solidHeader = FALSE, title = "Gene Expression Comparisons",
                               status = "success",
+                              
+                              # Input: plastic variable ----
                               selectizeInput(
                                 inputId = ns("meta_var_comparison_sel"), label = "Select plastic variable",
                                 choices = projects[[project_id]][["meta_var_comparison"]],
@@ -301,13 +314,17 @@ project_tab <- function(project_id) {
                               ),
                               
                               tags$b("Sort plastic variable values"),
-                              uiOutput(ns("meta_var_comparison_sel_values")),
+                              # Input: plastic sorting ----
+                              hidden(uiOutput(ns("meta_var_comparison_sel_values"))),
                               
+                              # Input: Plastic stratifying ----
                               selectizeInput(
                                 inputId = ns("meta_var_strat_sel"), label = "Select stratifying variables",
                                 choices = projects[[project_id]][["meta_var_strat"]],
                                 multiple = TRUE, options = list(maxItems = 10)
                               ),
+                              
+                              # Input: Plastic non stratified ----
                               selectizeInput(inputId = ns("meta_var_non_strat"), label = "Info: non-stratified variables", 
                                              choices =projects[[project_id]][["meta_var_non_strat"]],
                                              multiple = TRUE, options = list(
@@ -325,13 +342,18 @@ project_tab <- function(project_id) {
                               ),
                               
                               br(),
+                              tags$hr(),
+                              
                               h4("Differential expression reference"),
+                              
+                              # Input: Ref  stratifying ----
                               selectizeInput(
                                 inputId = ns("meta_all_var_strat_sel"), label = "Select reference stratifying variables",
                                 choices = projects[[project_id]][["all_var_strat"]],
                                 multiple = TRUE, options = list(maxItems = 10)
                               ),
                               
+                              # Input: Ref non stratified ----
                               selectizeInput(inputId = ns("meta_all_var_non_strat"), label = "Info: non-stratified reference variables", 
                                              choices =projects[[project_id]][["meta_all_var_non_strat"]],
                                              multiple = TRUE, options = list(
@@ -426,6 +448,9 @@ meaningful_name_path <- function(dataset_dir_list) {
   return(probable_names)
 }
 
+
+
+#ui ####
 ui <- fluidPage(
   shinyjs::useShinyjs(),
   dashboardPage(
@@ -447,11 +472,15 @@ qc_server <- function(id, input_id) {
     id,
     function(input, output, session) {
       
+      ns <- session$ns
+      
       project <- reactiveVal(projects[[input_id]])
       
       cluster_names <- reactiveVal(value = list())
       
       var_comparison_sel_values <- reactiveVal(value = list())
+      
+      hide(ns("meta_var_comparison_sel_values"))
       
       #output$summary_qc <- NULL
       #output$emptylets_plot <- NULL
@@ -464,6 +493,7 @@ qc_server <- function(id, input_id) {
       
       output$emptylets_plot <- renderPlot(project()[["p"]])
       
+      # Event: do_qc
       observeEvent(input$do_qc, {
         browser()
         summary_qc <- data.frame()
@@ -480,7 +510,6 @@ qc_server <- function(id, input_id) {
         
         result <- filter_offgenes(s_data, summary_qc, s_data_status)
         data.filt <- result$data.filt
-        #projects[[input_id]][["data.filt"]] <- data.filt
         projects[[input_id]][["selected_f0"]] <<- result$selected_f0
         summary_qc <- result$summary_qc
         s_data_status <- result$status
@@ -488,7 +517,6 @@ qc_server <- function(id, input_id) {
         print(paste("isolate(input$perc_zeros)", isolate(input$perc_zeros)))
         result <- filter_emptylets(data.filt, summary_qc, isolate(input$perc_zeros), s_data_status)
         data.filt <- result$data.filt
-        #projects[[input_id]][["data.filt"]] <- data.filt
         projects[[input_id]][["selected_cE"]] <<- result$selected_cE
         summary_qc <- result$summary_qc
         s_data_status <- result$status
@@ -498,19 +526,20 @@ qc_server <- function(id, input_id) {
         print(paste("isolate(input$sigma_mito)", isolate(input$sigma_mito)))
         result <- filter_lysed(data.filt, summary_qc, isolate(input$sigma_mito), s_data_status)
         data.filt <- result$data.filt
-        #projects[[input_id]][["data.filt"]] <- data.filt
         projects[[input_id]][["selected_cM"]] <<- result$selected_cM
         summary_qc <- result$summary_qc
         s_data_status <- result$status
         
         print(paste("isolate(input$multiplet_rate)", isolate(input$multiplet_rate)))
-        result <- filter_doublets(data.filt, summary_qc, isolate(input$multiplet_rate), s_data_status)
-        data.filt <- result$data.filt
-        #projects[[input_id]][["data.filt"]] <- data.filt
-        projects[[input_id]][["selected_cD"]] <<- result$selected_cD
-        summary_qc <- result$summary_qc
-        s_data_status <- result$status
-        plots <- result$plots
+        #####
+        #result <- filter_doublets(data.filt, summary_qc, isolate(input$multiplet_rate), s_data_status)
+        #data.filt <- result$data.filt
+        #projects[[input_id]][["selected_cD"]] <<- result$selected_cD
+        #summary_qc <- result$summary_qc
+        #s_data_status <- result$status
+        #plots <- result$plots
+        #####
+    
         ###
         
         
@@ -613,6 +642,7 @@ qc_server <- function(id, input_id) {
         
 
         
+        # init plastic vars ---- 
         
         my_meta_vars <- meta_vars(projects[[input_id]][["metadata_"]], var_strat_sel = input$meta_var_strat_sel, var_comparison_sel = input$meta_var_comparison_sel)
         
@@ -624,16 +654,10 @@ qc_server <- function(id, input_id) {
         
         projects[[input_id]][["meta_var_strat"]] <<- my_meta_vars$var_strat
         projects[[input_id]][["meta_var_strat_sel"]] <<- my_meta_vars$var_strat_sel
-        
-        
-        projects[[input_id]][["meta_all_var_strat"]] <<- my_meta_vars$all_var_strat
-        projects[[input_id]][["meta_all_var_strat_sel"]] <<- my_meta_vars$all_var_strat_sel
-        
         projects[[input_id]][["meta_var_non_strat"]] <<- my_meta_vars$var_non_strat
-        projects[[input_id]][["meta_all_var_non_strat"]] <<- my_meta_vars$all_var_non_strat
         
         
-        
+        # update plastic vars ----
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 1), server = FALSE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
         
         var_comparison_sel_values(projects[[input_id]][["var_comparison_sel_values"]])
@@ -645,16 +669,21 @@ qc_server <- function(id, input_id) {
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
   
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10), server = FALSE)#, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10), server = FALSE)#, selected = 
         
-        #df_deg = deg_analysis(alldata, key=key, group=sens_org, reference=res_org)
+        # init ref vars ---- 
+        my_meta_vars <- meta_vars(projects[[input_id]][["metadata_"]], var_strat_sel = input$meta_all_var_strat_sel, var_comparison_sel = NULL)
         
+        projects[[input_id]][["meta_all_var_strat"]] <<- my_meta_vars$var_strat
+        projects[[input_id]][["meta_all_var_strat_sel"]] <<- my_meta_vars$var_strat_sel
+        projects[[input_id]][["meta_all_var_non_strat"]] <<- my_meta_vars$var_non_strat
         
-                  # create_clustering_gui(input_id)
-                  # clustering_server(last_created_project_id, last_created_project_id)
+        browser()
         
+        # update ref vars ----
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
         
-        
+        browser()
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_non_strat", choices = projects[[input_id]][["meta_all_var_non_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_all_var_non_strat"]])
         
@@ -680,6 +709,11 @@ qc_server <- function(id, input_id) {
 
         
         var_comparison_sel_values(projects[[input_id]][["meta_var_comparison_sel_values"]])
+        
+        if (is.null(input$meta_var_comparison_sel))
+          hide(ns("meta_var_comparison_sel_values"))  
+        else
+          show(ns("meta_var_comparison_sel_values"))
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
