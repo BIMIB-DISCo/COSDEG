@@ -610,7 +610,13 @@ meta_vars <- function(metadata_df, var_comparison_sel, var_strat_sel) {
   var_comparison <- colnames(metadata_df)
   var_comparison
   
-  var_comparison_sel_values <- unique(metadata_df[,var_comparison_sel])
+  #var_comparison_sel_values <- list()
+  #if(!is.null(var_comparison_sel)) {
+  #  if (var_comparison_sel=="")
+  #    var_comparison_sel_values <- list()
+  #  else  
+      var_comparison_sel_values <- unique(metadata_df[,var_comparison_sel])
+  #}
   
   all_var_strat <- lapply(as.list(metadata_df), function(x) x[!duplicated(x)])
   all_var_strat
@@ -619,7 +625,7 @@ meta_vars <- function(metadata_df, var_comparison_sel, var_strat_sel) {
   df0 <- metadata_df[,setdiff(var_comparison,var_comparison_sel), drop=FALSE]
   df0
   
-  var_strat <- lapply(as.list(df0), function(x) x[!duplicated(x)])
+  var_strat <- lapply(as.list(df0), function(x) x[!duplicated(x)]) #not needed
   var_strat
   
   var_non_strat <- colnames(df0)
@@ -628,18 +634,23 @@ meta_vars <- function(metadata_df, var_comparison_sel, var_strat_sel) {
   #if (is.null(var_strat_sel))
   #  df1 <- df0
   #else
+  
+  #var_strat_sel <- setdiff(var_strat_sel, var_strat)
+  
+  var_strat_remove <- var_strat_sel[var_strat_sel %in% var_comparison_sel_values ]
+  var_strat_sel <- setdiff(var_strat_sel,var_strat_remove)  #if by chance the var_comparison_sel is changed so to include a stratified variable then it is removed from var_strat_sel
+  
+  
     df1 <- df0[rowSums(sapply(df0, `%in%`, var_strat_sel)) >= length(var_strat_sel), , drop=FALSE]
   df1 #df1 contains only rows with all the var_strat_sel
   
   
+  # var_non_strat_null contains groups of not stratifiable variables because there is only one value associated to those groups
   var_non_strat_null <- colnames(df1[,sapply(df1, function(x) length(x[!duplicated(x)]))==1, drop=FALSE])
   var_non_strat_null
   
-  #var_strat_null <- df1[,sapply(df1, function(x) length(x[!duplicated(x)]))==1]
-  #var_strat_null <- as.vector(t(var_strat_null))
-  #var_strat_null <- var_strat_null[!duplicated(var_strat_null)]
-  #var_strat_null
-  
+
+  # var_non_strat are the variables belonging to group names not yet stratified 
   var_non_strat <- setdiff(var_non_strat, var_non_strat_null)
   var_non_strat
   
@@ -656,8 +667,8 @@ meta_vars <- function(metadata_df, var_comparison_sel, var_strat_sel) {
     external_res <- data.frame(list(var_strat_sel))
   
     
-  
-  colnames(external_res) <- c(var_comparison_sel, var_strat_sel)
+  if (!is.null(var_comparison_sel))  
+    colnames(external_res) <- c(var_comparison_sel, var_strat_sel)
   external_res
   
   if (length(var_strat_sel)+length(var_comparison_sel)>=2)

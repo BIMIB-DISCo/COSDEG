@@ -136,7 +136,7 @@ loadRData <- function(filename, varname=NULL){
 
 
 load_project <- function(file_name, projects) {
-  browser()
+  #browser()
   #file_name <- file_name$datapath
   load(file_name)
   #browser()
