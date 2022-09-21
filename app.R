@@ -370,6 +370,10 @@ project_tab <- function(project_id) {
                                              selected= projects[[project_id]][["meta_var_non_strat"]]
                               ),
                   
+                              br(),
+                              tags$hr(),
+                              # Output: summary QC ----
+                              DT::dataTableOutput(ns("comparison_table")),
                               
                           ),
                           
@@ -711,9 +715,9 @@ qc_server <- function(id, input_id) {
         var_comparison_sel_values(projects[[input_id]][["meta_var_comparison_sel_values"]])
         
         if (is.null(input$meta_var_comparison_sel))
-          hide(ns("meta_var_comparison_sel_values"))  
+          hide("meta_var_comparison_sel_values")  
         else
-          show(ns("meta_var_comparison_sel_values"))
+          show("meta_var_comparison_sel_values")
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
@@ -763,7 +767,31 @@ qc_server <- function(id, input_id) {
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_non_strat", choices = projects[[input_id]][["meta_all_var_non_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_all_var_non_strat"]])
         
-      
+        browser()
+        
+        #plast_point <- expand.grid(c(list(input$ns("meta_var_comparison_sel_values")), projects[[input_id]][["meta_var_strat"]]))
+        
+        plast_points <- expand.grid(c(list(var_comparison_sel_values()), projects[[input_id]][["meta_var_strat"]]))
+        mask_all_strat <- projects[[input_id]][["meta_all_var_strat_sel"]] %in% var_comparison_sel_values()
+        
+        ref_plast_sel <- projects[[input_id]][["meta_all_var_strat_sel"]][mask_all_strat]
+        from_ref_plastic_sel <- which(var_comparison_sel_values() %in% ref_plast_sel)
+        
+        rev_plast_vals <- c(var_comparison_sel_values()[from_ref_plastic_sel: length(var_comparison_sel_values())],var_comparison_sel_values()[1:from_ref_plastic_sel-1])
+        
+        ref_points <- expand.grid(c(list(rev_plast_vals), projects[[input_id]][["meta_all_var_strat_sel"]][!mask_all_strat]))
+        
+        #grid(plastic_variable_values_sorted, all_strat_var_sel[!mask_all_strat]) 
+        
+        data.frame(rbind(t(as.list(as.data.frame(t(plast_points)))),a=t(as.list(as.data.frame(t(ref_points))))))
+        
+        data.frame(cbind( as.list(as.data.frame(t(plast_points))),ref=as.list(as.data.frame(t(ref_points))) ))
+        
+        data.frame(cbind( list(as.data.frame((plast_points))),ref=list(as.data.frame((ref_points))) ))
+        
+        
+        
+        output$comparison_table <- DT::renderDataTable(DT::datatable(project()[["summary_qc"]], options = list(dom = ''), rownames = TRUE))
         })
       
       
