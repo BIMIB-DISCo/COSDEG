@@ -587,11 +587,11 @@ qc_server <- function(id, input_id) {
       
 
 
-      output$meta_var_comparison_sel_values <- renderUI({
+      output$meta_var_comparison_sel_valuess <- renderUI({
         rank_list(
           text = NULL,
           labels = var_comparison_sel_values(), #projects[[project_id]][["var_comparison_sel_values"]],
-          input_id = "meta_var_comparison_sel_values",
+          input_id = "var_comparison_sel_values",
           options = sortable_options(multiDrag = TRUE)
         )
       })
@@ -715,9 +715,9 @@ qc_server <- function(id, input_id) {
         var_comparison_sel_values(projects[[input_id]][["meta_var_comparison_sel_values"]])
         
         if (is.null(input$meta_var_comparison_sel))
-          hide("meta_var_comparison_sel_values")  
+          shinyjs::hide(ns("meta_var_comparison_sel_values"), asis = TRUE)  
         else
-          show("meta_var_comparison_sel_values")
+          shinyjs::show(ns("meta_var_comparison_sel_values"), asis = TRUE)
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
