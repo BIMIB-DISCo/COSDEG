@@ -315,7 +315,8 @@ project_tab <- function(project_id) {
                               
                               tags$b("Sort plastic variable values"),
                               # Input: plastic sorting ----
-                              hidden(uiOutput(ns("meta_var_comparison_sel_values"))),
+                              #hidden(uiOutput(ns("meta_var_comparison_sel_values"))),
+                              uiOutput(ns("meta_var_comparison_sel_values")),
                               
                               # Input: Plastic stratifying ----
                               selectizeInput(
@@ -373,6 +374,7 @@ project_tab <- function(project_id) {
                               br(),
                               tags$hr(),
                               # Output: summary QC ----
+                              uiOutput(ns("comparison_title")),
                               DT::dataTableOutput(ns("comparison_table")),
                               
                           ),
@@ -484,7 +486,7 @@ qc_server <- function(id, input_id) {
       
       var_comparison_sel_values <- reactiveVal(value = list())
       
-      hide(ns("meta_var_comparison_sel_values"))
+      #hide(ns("meta_var_comparison_sel_values"))
       
       #output$summary_qc <- NULL
       #output$emptylets_plot <- NULL
@@ -497,7 +499,7 @@ qc_server <- function(id, input_id) {
       
       output$emptylets_plot <- renderPlot(project()[["p"]])
       
-      # Event: do_qc
+      # Event: do_qc ----
       observeEvent(input$do_qc, {
         browser()
         summary_qc <- data.frame()
@@ -572,12 +574,13 @@ qc_server <- function(id, input_id) {
           ylab("Frequency") +
           facet_wrap(~type)
 
-        ns <- session$ns
+        #ns <- session$ns
         browser()
          # output$tomergedatasets_out <- renderUI({
             #updateSelectizeInput(session = session, inputId = ns("tomerge_seurat_obj"), label = "Select datasets to merge", choices = names(projects[[input_id]][["seurat_objs"]]), options =  list(maxItems = 10), server = TRUE)
           #})
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "tomerge_seurat_obj", choices = names(projects[[input_id]][["data.filt"]]), options =  list(maxItems = 10), server = TRUE)   
+        
         project(projects[[input_id]])
         #
         #print(project()) #### ERROR because it contains plot handles
@@ -587,11 +590,11 @@ qc_server <- function(id, input_id) {
       
 
 
-      output$meta_var_comparison_sel_valuess <- renderUI({
+      output$meta_var_comparison_sel_values <- renderUI({
         rank_list(
           text = NULL,
           labels = var_comparison_sel_values(), #projects[[project_id]][["var_comparison_sel_values"]],
-          input_id = "var_comparison_sel_values",
+          input_id = ns("meta_var_comparison_sel_valuess"),
           options = sortable_options(multiDrag = TRUE)
         )
       })
@@ -771,7 +774,7 @@ qc_server <- function(id, input_id) {
         
         #plast_point <- expand.grid(c(list(input$ns("meta_var_comparison_sel_values")), projects[[input_id]][["meta_var_strat"]]))
         
-        plast_points <- expand.grid(c(list(var_comparison_sel_values()), projects[[input_id]][["meta_var_strat"]]))
+        plast_points <- expand.grid(c(list(var_comparison_sel_values()), projects[[input_id]][["meta_var_strat_sel"]]))
         mask_all_strat <- projects[[input_id]][["meta_all_var_strat_sel"]] %in% var_comparison_sel_values()
         
         ref_plast_sel <- projects[[input_id]][["meta_all_var_strat_sel"]][mask_all_strat]
@@ -783,15 +786,17 @@ qc_server <- function(id, input_id) {
         
         #grid(plastic_variable_values_sorted, all_strat_var_sel[!mask_all_strat]) 
         
-        data.frame(rbind(t(as.list(as.data.frame(t(plast_points)))),a=t(as.list(as.data.frame(t(ref_points))))))
+        comparisons <- data.frame(rbind(t(as.list(as.data.frame(t(plast_points)))),a=t(as.list(as.data.frame(t(ref_points))))))
+        rownames(comparisons) <- c("actual","reference")
+        projects[[input_id]][["comparisons"]] <<- comparisons
         
         data.frame(cbind( as.list(as.data.frame(t(plast_points))),ref=as.list(as.data.frame(t(ref_points))) ))
         
         data.frame(cbind( list(as.data.frame((plast_points))),ref=list(as.data.frame((ref_points))) ))
         
         
-        
-        output$comparison_table <- DT::renderDataTable(DT::datatable(project()[["summary_qc"]], options = list(dom = ''), rownames = TRUE))
+        output$comparison_title <- renderUI(h4(paste(projects[[input_id]][["meta_var_comparison_sel"]], "plasticity comparisons")))
+        output$comparison_table <- DT::renderDataTable(DT::datatable(projects[[input_id]][["comparisons"]], options = list(dom = ''), rownames = TRUE))
         })
       
       
