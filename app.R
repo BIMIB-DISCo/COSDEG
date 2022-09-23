@@ -670,13 +670,15 @@ qc_server <- function(id, input_id) {
         var_comparison_sel_values(projects[[input_id]][["var_comparison_sel_values"]])
         
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10, plugins = list("drag_drop", "remove_button")), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
   
         
-        #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], server = FALSE)#, selected = 
+
+        #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10), server = FALSE)#, selected = 
         
         # init ref vars ---- 
         my_meta_vars <- meta_vars(projects[[input_id]][["metadata_"]], var_strat_sel = input$meta_all_var_strat_sel, var_comparison_sel = NULL)
@@ -688,7 +690,8 @@ qc_server <- function(id, input_id) {
         browser()
         
         # update ref vars ----
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
+
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10, plugins = list("drag_drop", "remove_button")), server = FALSE, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
         
         browser()
         
@@ -722,7 +725,8 @@ qc_server <- function(id, input_id) {
         else
           shinyjs::show(ns("meta_var_comparison_sel_values"), asis = TRUE)
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10, plugins = list("drag_drop", "remove_button")), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
         
@@ -747,7 +751,8 @@ qc_server <- function(id, input_id) {
         browser()
         
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10, plugins = list("drag_drop", "remove_button")), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
         
         updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
@@ -764,7 +769,8 @@ qc_server <- function(id, input_id) {
         
         browser()
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
+
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10, plugins = list("drag_drop", "remove_button")), server = FALSE, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
         
         browser()
         
