@@ -310,7 +310,7 @@ project_tab <- function(project_id) {
                               selectizeInput(
                                 inputId = ns("meta_var_comparison_sel"), label = "Select plastic variable",
                                 choices = projects[[project_id]][["meta_var_comparison"]],
-                                multiple = TRUE, options = list(maxItems = 2)
+                                multiple = TRUE, options = list(maxItems = 1)
                               ),
                               
                               tags$b("Sort plastic variable values"),
@@ -322,15 +322,15 @@ project_tab <- function(project_id) {
                               selectizeInput(
                                 inputId = ns("meta_var_strat_sel"), label = "Select stratifying variables",
                                 choices = projects[[project_id]][["meta_var_strat"]],
-                                multiple = TRUE, options = list(maxItems = 10)
+                                multiple = TRUE, options = list(maxItems = 10, plugins = list("drag_drop", "remove_button"))
                               ),
                               
                               # Input: Plastic non stratified ----
                               selectizeInput(inputId = ns("meta_var_non_strat"), label = "Info: non-stratified variables", 
                                              choices =projects[[project_id]][["meta_var_non_strat"]],
                                              multiple = TRUE, options = list(
-                                               maxItems = 4,
-                                               maxOptions = 3,
+                                               maxItems = 10,
+                                               maxOptions = 10,
                                                openOnFocus = FALSE,
                                                'create' = FALSE,
                                                'persist' = FALSE,
@@ -351,15 +351,15 @@ project_tab <- function(project_id) {
                               selectizeInput(
                                 inputId = ns("meta_all_var_strat_sel"), label = "Select reference stratifying variables",
                                 choices = projects[[project_id]][["all_var_strat"]],
-                                multiple = TRUE, options = list(maxItems = 10)
+                                multiple = TRUE, options = list(maxItems = 10, plugins = list("drag_drop", "remove_button"))
                               ),
                               
                               # Input: Ref non stratified ----
                               selectizeInput(inputId = ns("meta_all_var_non_strat"), label = "Info: non-stratified reference variables", 
                                              choices =projects[[project_id]][["meta_all_var_non_strat"]],
                                              multiple = TRUE, options = list(
-                                               maxItems = 4,
-                                               maxOptions = 3,
+                                               maxItems = 10,
+                                               maxOptions = 10,
                                                openOnFocus = FALSE,
                                                'create' = FALSE,
                                                'persist' = FALSE,
@@ -665,18 +665,18 @@ qc_server <- function(id, input_id) {
         
         
         # update plastic vars ----
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], options =  list(maxItems = 1), server = FALSE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_comparison_sel", choices = projects[[input_id]][["meta_var_comparison"]], server = FALSE, selected = projects[[input_id]][["meta_var_comparison_sel"]])
         
         var_comparison_sel_values(projects[[input_id]][["var_comparison_sel_values"]])
         
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
   
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10), server = FALSE)#, selected = 
+        #updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], server = FALSE)#, selected = 
         
         # init ref vars ---- 
         my_meta_vars <- meta_vars(projects[[input_id]][["metadata_"]], var_strat_sel = input$meta_all_var_strat_sel, var_comparison_sel = NULL)
@@ -688,11 +688,11 @@ qc_server <- function(id, input_id) {
         browser()
         
         # update ref vars ----
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
         
         browser()
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_non_strat", choices = projects[[input_id]][["meta_all_var_non_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_all_var_non_strat"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_non_strat", choices = projects[[input_id]][["meta_all_var_non_strat"]], server = FALSE, selected = projects[[input_id]][["meta_all_var_non_strat"]])
         
         
       })
@@ -722,9 +722,9 @@ qc_server <- function(id, input_id) {
         else
           shinyjs::show(ns("meta_var_comparison_sel_values"), asis = TRUE)
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
         
       })
       
@@ -747,10 +747,10 @@ qc_server <- function(id, input_id) {
         browser()
         
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_strat_sel", choices = projects[[input_id]][["meta_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_strat_sel"]])
         
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_var_non_strat", choices = projects[[input_id]][["meta_var_non_strat"]], server = FALSE, selected = projects[[input_id]][["meta_var_non_strat"]])
       })
         
 
@@ -764,11 +764,11 @@ qc_server <- function(id, input_id) {
         
         browser()
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_strat_sel", choices = projects[[input_id]][["meta_all_var_strat"]], server = FALSE, selected = projects[[input_id]][["meta_all_var_strat_sel"]])
         
         browser()
         
-        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_non_strat", choices = projects[[input_id]][["meta_all_var_non_strat"]], options =  list(maxItems = 10), server = FALSE, selected = projects[[input_id]][["meta_all_var_non_strat"]])
+        updateSelectizeInput(session = getDefaultReactiveDomain(), inputId = "meta_all_var_non_strat", choices = projects[[input_id]][["meta_all_var_non_strat"]], server = FALSE, selected = projects[[input_id]][["meta_all_var_non_strat"]])
         
         browser()
         
