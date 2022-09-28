@@ -370,6 +370,10 @@ project_tab <- function(project_id) {
                                              ),
                                              selected= projects[[project_id]][["meta_var_non_strat"]]
                               ),
+                              
+                              radioButtons("ref_type", "Reference type:",
+                                           c("Fixed" = "fixed",
+                                             "Delta steps" = "delta")),
                   
                               br(),
                               tags$hr(),
